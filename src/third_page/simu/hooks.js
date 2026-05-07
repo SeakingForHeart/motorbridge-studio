@@ -31,6 +31,7 @@ export function useSimuState() {
   const [pickPlaneY, setPickPlaneY] = React.useState(0.18);
   const [selectedWaypointId, setSelectedWaypointId] = React.useState('');
   const [editPose, setEditPose] = React.useState({ x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 });
+  const [localWaypoints, setLocalWaypoints] = React.useState({});
   const [presets, setPresets] = React.useState(() => {
     try {
       const raw = localStorage.getItem(LS_PRESETS_KEY);
@@ -211,6 +212,18 @@ export function useSimuState() {
     setSelectedWaypointId,
     editPose,
     setEditPose,
+    localWaypoints,
+    addLocalWaypoint: (id, point) => setLocalWaypoints((prev) => ({ ...prev, [id]: point })),
+    removeLocalWaypoint: (id) => setLocalWaypoints((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    }),
+    clearLocalWaypoints: () => {
+      setLocalWaypoints({});
+      setSequenceIds([]);
+      setSelectedWaypointId('');
+    },
     setEditPoseField: (k, v) => setEditPose((prev) => ({ ...prev, [k]: Number(v) || 0 })),
     setEditPoseFromCurrent: (p) => setEditPose({
       x: Number(p?.x || 0), y: Number(p?.y || 0), z: Number(p?.z || 0),
@@ -247,6 +260,33 @@ export function useSimuBridge() {
   const [busSnapshot, setBusSnapshot] = React.useState(null);
   const [taskEvent, setTaskEvent] = React.useState(null);
 
+  const applyWaypoints = React.useCallback((waypoints) => {
+    setLatestState((prev) => ({
+      ...(prev || {}),
+      waypoints: waypoints && typeof waypoints === 'object' ? waypoints : {},
+      ts: prev?.ts || Date.now() / 1000,
+    }));
+  }, []);
+
+  const applyWaypointEvent = React.useCallback((msg) => {
+    if (msg?.type !== 'waypoint') return;
+    const data = msg.data || {};
+    setLatestState((prev) => {
+      const current = { ...(prev?.waypoints || {}) };
+      if (data.event === 'cleared') {
+        return { ...(prev || {}), waypoints: {}, ts: Date.now() / 1000 };
+      }
+      const id = String(data.id || '').trim();
+      if (!id) return prev;
+      if (data.event === 'removed') {
+        delete current[id];
+      } else if ((data.event === 'added' || data.event === 'updated') && data.pose) {
+        current[id] = data.pose;
+      }
+      return { ...(prev || {}), waypoints: current, ts: Date.now() / 1000 };
+    });
+  }, []);
+
   React.useEffect(() => {
     const bridge = new SimuWsBridge({
       url,
@@ -256,7 +296,10 @@ export function useSimuBridge() {
       onPacket: (item) => {
         setHistory((prev) => [...prev.slice(-199), item]);
       },
-      onTask: setTaskEvent,
+      onTask: (msg) => {
+        setTaskEvent(msg);
+        applyWaypointEvent(msg);
+      },
     });
     bridgeRef.current = bridge;
     bridge.autoReconnect = true;
@@ -266,7 +309,7 @@ export function useSimuBridge() {
       bridge.disconnect(true);
       bridgeRef.current = null;
     };
-  }, []);
+  }, [applyWaypointEvent]);
 
   const connectWs = React.useCallback(() => {
     const b = bridgeRef.current;
@@ -296,17 +339,25 @@ export function useSimuBridge() {
   }, [send]);
 
   const addWaypoint = React.useCallback(async (id, pose, label = '') => {
-    return send('waypoint_add', { id, pose, label }, 2000);
-  }, [send]);
+    const ret = await send('waypoint_add', { id, pose, label }, 2000);
+    if (ret?.ok && ret?.data?.waypoints) applyWaypoints(ret.data.waypoints);
+    return ret;
+  }, [send, applyWaypoints]);
   const removeWaypoint = React.useCallback(async (id) => {
-    return send('waypoint_remove', { id }, 2000);
-  }, [send]);
+    const ret = await send('waypoint_remove', { id }, 2000);
+    if (ret?.ok && ret?.data?.waypoints) applyWaypoints(ret.data.waypoints);
+    return ret;
+  }, [send, applyWaypoints]);
   const clearWaypoints = React.useCallback(async () => {
-    return send('waypoint_clear', {}, 2000);
-  }, [send]);
+    const ret = await send('waypoint_clear', {}, 2000);
+    if (ret?.ok && ret?.data?.waypoints) applyWaypoints(ret.data.waypoints);
+    return ret;
+  }, [send, applyWaypoints]);
   const updateWaypoint = React.useCallback(async (id, pose, label = '') => {
-    return send('waypoint_update', { id, pose, label }, 2000);
-  }, [send]);
+    const ret = await send('waypoint_update', { id, pose, label }, 2000);
+    if (ret?.ok && ret?.data?.waypoints) applyWaypoints(ret.data.waypoints);
+    return ret;
+  }, [send, applyWaypoints]);
   const runWaypoints = React.useCallback(async (fromId, toId, durationS, profile = 'min_jerk') => {
     return send('sim_run_waypoints', { from_id: fromId, to_id: toId, duration_s: durationS, profile }, 2500);
   }, [send]);

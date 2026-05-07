@@ -7,6 +7,22 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import URDFLoader from 'urdf-loader';
 
 const URDF_PATH = '/resources/arm02/reBot_B601_DM_with_gripper/urdf/reBot_B601_DM_with_gripper.urdf';
+const GRIPPER_MAX_OPEN_M = 0.0515;
+
+function normalizeArm02JointTargets(map) {
+  if (!map || typeof map !== 'object') return map;
+  const next = { ...map };
+  if (next.joint7 !== undefined) {
+    const raw = Number(next.joint7);
+    if (Number.isFinite(raw)) {
+      const opening = Math.max(0, Math.min(GRIPPER_MAX_OPEN_M, raw));
+      next.gripper_joint1 = opening;
+      next.gripper_joint2 = opening;
+    }
+    delete next.joint7;
+  }
+  return next;
+}
 const DEFAULT_CAMERA_POS = new THREE.Vector3(1.15, 0.95, 1.2);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0.35, 0);
 const TRAIL_MAX_POINTS = 1200;
@@ -136,6 +152,7 @@ export function ArmUrdfViewer({
   trailVisible = true,
   onReplayStateChange,
   waypointMarkers = [],
+  plannedPath = [],
   pickEnabled = false,
   pickPlaneY = 0.18,
   pickBounds = null,
@@ -177,6 +194,7 @@ export function ArmUrdfViewer({
   const waypointGroupRef = React.useRef(null);
   const waypointMeshMapRef = React.useRef(new Map());
   const waypointLabelMapRef = React.useRef(new Map());
+  const planPathLineRef = React.useRef(null);
   const pickVolumeGroupRef = React.useRef(null);
   const pickBoxRef = React.useRef(null);
   const pickPlaneMeshRef = React.useRef(null);
@@ -244,8 +262,9 @@ export function ArmUrdfViewer({
   const applyJointMap = React.useCallback((map) => {
     const robot = robotRef.current;
     if (!robot?.joints || !map || typeof map !== 'object') return;
+    const normalizedMap = normalizeArm02JointTargets(map);
     const nextAnim = { ...animJointRef.current };
-    Object.entries(map).forEach(([jointName, targetRaw]) => {
+    Object.entries(normalizedMap).forEach(([jointName, targetRaw]) => {
       const target = Number(targetRaw);
       if (!Number.isFinite(target)) return;
       const j = robot.joints?.[jointName];
@@ -494,7 +513,7 @@ export function ArmUrdfViewer({
   }, [replayFinishSeq, applyJointMap, pushTrailPoint, setReplayBusy]);
 
   React.useEffect(() => {
-    targetRef.current = jointTargets || {};
+    targetRef.current = normalizeArm02JointTargets(jointTargets || {});
     if (modeRef.current !== 'direct') return;
     const robot = robotRef.current;
     if (!robot) return;
@@ -580,6 +599,21 @@ export function ArmUrdfViewer({
       labelMap.delete(id);
     });
   }, [waypointMarkers]);
+
+  React.useEffect(() => {
+    const line = planPathLineRef.current;
+    if (!line) return;
+    const flat = [];
+    (Array.isArray(plannedPath) ? plannedPath : []).forEach((p) => {
+      const x = Number(p?.x);
+      const y = Number(p?.y);
+      const z = Number(p?.z);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
+      flat.push(x, y, z);
+    });
+    setLinePositionsSafe(line, flat);
+    line.visible = flat.length >= 6;
+  }, [plannedPath]);
 
   React.useEffect(() => {
     const pickGroup = pickVolumeGroupRef.current;
@@ -764,6 +798,37 @@ export function ArmUrdfViewer({
     trailLine.computeLineDistances();
     scene.add(trailLine);
     trailLineRef.current = trailLine;
+
+    const planGeometry = new LineGeometry();
+    planGeometry.setPositions(SAFE_ZERO_SEGMENT);
+    const planMaterial = new LineMaterial({
+      color: 0x2d7ff9,
+      linewidth: 3.0,
+      transparent: true,
+      opacity: 0.62,
+      toneMapped: false,
+      depthTest: false,
+      depthWrite: false,
+      dashed: false,
+    });
+    planMaterial.resolution.set(host.clientWidth || 640, host.clientHeight || 400);
+    const planPathLine = new Line2(planGeometry, planMaterial);
+    planPathLine.visible = false;
+    planPathLine.frustumCulled = false;
+    planPathLine.renderOrder = 940;
+    planPathLine.computeLineDistances();
+    scene.add(planPathLine);
+    planPathLineRef.current = planPathLine;
+    const initialPlanFlat = [];
+    (Array.isArray(plannedPath) ? plannedPath : []).forEach((p) => {
+      const x = Number(p?.x);
+      const y = Number(p?.y);
+      const z = Number(p?.z);
+      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) initialPlanFlat.push(x, y, z);
+    });
+    setLinePositionsSafe(planPathLine, initialPlanFlat);
+    planPathLine.visible = initialPlanFlat.length >= 6;
+
     const rainbowGeom = new THREE.BufferGeometry();
     rainbowGeom.setAttribute('position', new THREE.Float32BufferAttribute(SAFE_ZERO_SEGMENT, 3));
     rainbowGeom.setAttribute('color', new THREE.Float32BufferAttribute([1, 0, 0, 1, 0, 0], 3));
@@ -846,7 +911,7 @@ export function ArmUrdfViewer({
         }
         if (robot?.joints) {
           const next = {};
-          Object.entries(targetRef.current || {}).forEach(([jointName, targetRaw]) => {
+          Object.entries(normalizeArm02JointTargets(targetRef.current || {})).forEach(([jointName, targetRaw]) => {
             const target = Number(targetRaw);
             if (!Number.isFinite(target)) return;
             const j = robot.joints?.[jointName];
@@ -873,8 +938,9 @@ export function ArmUrdfViewer({
       const robot = robotRef.current;
       if (!robot?.joints) return;
       const targets = targetRef.current || {};
+      const normalizedTargets = normalizeArm02JointTargets(targets);
       const nextState = { ...animJointRef.current };
-      Object.entries(targets).forEach(([jointName, targetRaw]) => {
+      Object.entries(normalizedTargets).forEach(([jointName, targetRaw]) => {
         const target = Number(targetRaw);
         if (!Number.isFinite(target)) return;
         const j = robot.joints?.[jointName];
@@ -1033,6 +1099,8 @@ export function ArmUrdfViewer({
       renderer.setSize(w, h);
       const mat = trailLineRef.current?.material;
       if (mat?.resolution) mat.resolution.set(w, h);
+      const planMat = planPathLineRef.current?.material;
+      if (planMat?.resolution) planMat.resolution.set(w, h);
     };
     window.addEventListener('resize', resize);
 
@@ -1057,6 +1125,7 @@ export function ArmUrdfViewer({
       cameraRef.current = null;
       controlsRef.current = null;
       trailLineRef.current = null;
+      planPathLineRef.current = null;
       trailRainbowRef.current = null;
       trailDotsRef.current = null;
       trailHeadRef.current = null;

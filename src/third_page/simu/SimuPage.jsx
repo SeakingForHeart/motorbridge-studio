@@ -1,6 +1,6 @@
 import React from 'react';
 import './simu.css';
-import { SimuLeftNav, SimuRightPanel, SimuTopRightBridge, SimuViewport } from './components';
+import { SimuLeftNav, SimuRightPanel, SimuViewport } from './components';
 import { useSimuBridge, useSimuState } from './hooks';
 
 const VIEWER_Y_OFFSET = 0.02;
@@ -11,6 +11,15 @@ function backendToViewerPose(p) {
   return { ...p, x, y: z + VIEWER_Y_OFFSET, z: -y };
 }
 
+function naturalWaypointCompare(a, b) {
+  const ax = String(a?.id || '');
+  const bx = String(b?.id || '');
+  const am = ax.match(/^([A-Za-z]+)(\d+)$/);
+  const bm = bx.match(/^([A-Za-z]+)(\d+)$/);
+  if (am && bm && am[1] === bm[1]) return Number(am[2]) - Number(bm[2]);
+  return ax.localeCompare(bx, undefined, { numeric: true, sensitivity: 'base' });
+}
+
 export function SimuPage() {
   const state = useSimuState();
   const bridge = useSimuBridge();
@@ -19,7 +28,8 @@ export function SimuPage() {
     [bridge.latestState?.waypoints],
   );
   const waypointList = React.useMemo(() => {
-    const w = JSON.parse(waypointsSig || '{}');
+    const remote = JSON.parse(waypointsSig || '{}');
+    const w = { ...(state.localWaypoints || {}), ...remote };
     return Object.entries(w).map(([id, p]) => ({
       id,
       label: String(p?.label || p?.name || id),
@@ -29,8 +39,8 @@ export function SimuPage() {
       roll: Number(p?.roll || 0),
       pitch: Number(p?.pitch || 0),
       yaw: Number(p?.yaw || 0),
-    }));
-  }, [waypointsSig]);
+    })).sort(naturalWaypointCompare);
+  }, [waypointsSig, state.localWaypoints]);
   const enhancedState = {
     ...state,
     waypointList,
@@ -82,7 +92,6 @@ export function SimuPage() {
       <SimuLeftNav state={state} />
       <SimuViewport state={enhancedState} />
       <SimuRightPanel state={enhancedState} bridge={bridge} />
-      <SimuTopRightBridge state={state} bridge={bridge} />
     </div>
   );
 }
