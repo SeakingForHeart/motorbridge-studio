@@ -359,6 +359,9 @@ export function useSimuBridge() {
     if (ret?.ok && ret?.data?.waypoints) applyWaypoints(ret.data.waypoints);
     return ret;
   }, [send, applyWaypoints]);
+  const validateWaypoint = React.useCallback(async (pose) => {
+    return send('waypoint_validate', { pose }, 2500);
+  }, [send]);
   const runWaypoints = React.useCallback(async (fromId, toId, durationS, profile = 'min_jerk') => {
     return send('sim_run_waypoints', { from_id: fromId, to_id: toId, duration_s: durationS, profile }, 2500);
   }, [send]);
@@ -403,6 +406,7 @@ export function useSimuBridge() {
     removeWaypoint,
     clearWaypoints,
     updateWaypoint,
+    validateWaypoint,
     runWaypoints,
     runSequence,
     stopMotion,

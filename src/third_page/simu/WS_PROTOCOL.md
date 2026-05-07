@@ -101,11 +101,20 @@ Important deployment note:
 3. Confirm the bridge status is `Connected`.
 4. Enable `Follow state` so the viewer follows backend motion.
 5. Use `Enter Pick Mode` and click/drag in the viewport, or type XYZ/RPY manually.
-6. Click `Add Point`. The form auto-advances from `P1` to `P2`, etc.
-7. Add multiple points.
-8. Check `Execution Order`; use `+Seq`, `Up`, `Down`, and `Del` to adjust order.
-9. Click `Start Sequence`.
-10. Use `Stop` to cancel a running sequence.
+6. Check the `Reachability` card. Green means backend IK can reach the point.
+   Yellow means a nearby solved pose is available. Red blocks saving.
+7. Click `Validate` manually when you want an explicit re-check; the page also
+   validates automatically while WS is connected.
+8. Click `Add Point`. The form auto-advances from `P1` to `P2`, etc.
+9. Add multiple points.
+10. Check `Execution Order`; use `Queue`, `Up`, `Down`, and `Del` to adjust order.
+11. Click `Start Sequence`.
+12. Use `Stop` to cancel a running sequence.
+
+The left navigation is intentionally compact:
+- `Plan`: point picking, IK validation, point list, and sequence execution.
+- `Manual`: joint sliders and presets for debugging/manual setup.
+- `View`: scene controls, trail replay/export, and WS diagnostics.
 
 Delete behavior:
 - Use the row-level `Del` button in `Point List` when possible.
@@ -192,6 +201,28 @@ Server pushes periodic state:
   "pose": {"x":0.31,"y":0.00,"z":0.22,"roll":0.0,"pitch":0.0,"yaw":0.0}
 }
 ```
+- `waypoint_validate`
+  - validates a candidate pose without moving the simulator
+  - payload:
+```json
+{
+  "pose": {"x":0.31,"y":0.00,"z":0.22,"roll":0.0,"pitch":0.0,"yaw":0.0}
+}
+```
+  - response data:
+```json
+{
+  "reachable": true,
+  "grade": "ok",
+  "error_m": 0.0002,
+  "error_mm": 0.2,
+  "requested": {"x":0.31,"y":0.0,"z":0.22,"roll":0.0,"pitch":0.0,"yaw":0.0},
+  "solved_pose": {"x":0.3101,"y":0.0,"z":0.2199,"roll":0.0,"pitch":0.0,"yaw":0.0},
+  "q": [0.0, 0.0, 0.0],
+  "iterations": 12,
+  "tolerance_m": 0.003
+}
+```
 - `waypoint_clear`
 - `waypoint_list`
 - `sim_run_waypoints`
@@ -203,7 +234,7 @@ Server pushes periodic state:
 
 ## Event Push
 - `{"type":"waypoint","data":{"event":"added|updated|removed|cleared", ...}}`
-- `{"type":"task","data":{"event":"accepted|done|stopped|error","task":{...}}}`
+- `{"type":"task","data":{"event":"accepted|waypoint_reached|done|stopped|error","task":{...}}}`
 
 ## Extensibility
 The backend bus is designed for multi-protocol bridging (`websocket`, `motorbridge_py`, `ros`, etc.).

@@ -2,11 +2,9 @@ import React from 'react';
 import { ArmUrdfViewer } from '../../components/ArmUrdfViewer';
 
 const NAV_ITEMS = [
-  { key: 'plan', label: 'Plan Points' },
-  { key: 'joint', label: 'Joint Control' },
-  { key: 'trajectory', label: 'Trajectory' },
-  { key: 'scene', label: 'Scene & View' },
-  { key: 'bridge', label: 'WS Bridge' },
+  { key: 'plan', label: 'Plan' },
+  { key: 'manual', label: 'Manual' },
+  { key: 'view', label: 'View' },
 ];
 
 function waypointColor(id) {
@@ -92,6 +90,14 @@ function clampViewerPose(p) {
     pitch: Number(p?.pitch || 0),
     yaw: Number(p?.yaw || 0),
   };
+}
+
+function validationTone(validation) {
+  const grade = validation?.grade;
+  if (grade === 'ok' || validation?.reachable) return 'ok';
+  if (grade === 'near') return 'near';
+  if (grade === 'out_of_reach') return 'bad';
+  return 'idle';
 }
 
 export function SimuLeftNav({ state }) {
@@ -350,13 +356,80 @@ function ScenePanel({ state }) {
 
 function PlanPanel({ state, bridge }) {
   const [busy, setBusy] = React.useState(false);
+  const [validation, setValidation] = React.useState({ grade: 'idle', message: 'Connect WS to validate reachability.' });
+  const [validationBusy, setValidationBusy] = React.useState(false);
   const pose = bridge.latestState?.pose || {};
   const poseViewer = backendToViewerPose(pose);
+  const motion = bridge.latestState?.motion || {};
+  const activeMotionId = motion?.current_id || bridge.taskEvent?.data?.task?.current_id || '';
   const labelById = React.useMemo(() => {
     const out = new Map();
     state.waypointList.forEach((wp) => out.set(wp.id, wp.label || wp.id));
     return out;
   }, [state.waypointList]);
+
+  const makeCandidatePoint = React.useCallback(() => {
+    const id = String(state.waypointId || '').trim();
+    const bounded = clampViewerPose(state.editPose);
+    return {
+      id,
+      viewerPose: bounded,
+      point: {
+        ...viewerToBackendPose(bounded),
+        label: String(state.waypointLabel || id).trim() || id,
+      },
+    };
+  }, [state.editPose, state.waypointId, state.waypointLabel]);
+
+  const validateCandidate = React.useCallback(async ({ silent = false } = {}) => {
+    const { point } = makeCandidatePoint();
+    if (!bridge.connected) {
+      const local = { grade: 'idle', message: 'WS disconnected: local preview only, reachability unknown.' };
+      if (!silent) setValidation(local);
+      return { ok: true, data: local, point };
+    }
+    setValidationBusy(true);
+    try {
+      const ret = await bridge.validateWaypoint(point);
+      if (!ret?.ok) {
+        const next = { grade: 'bad', message: `Validation failed: ${ret?.error || 'unknown error'}` };
+        setValidation(next);
+        return { ok: false, data: next, point };
+      }
+      const data = ret.data || {};
+      const err = Number(data.error_mm || 0);
+      const grade = validationTone(data);
+      const next = {
+        ...data,
+        grade,
+        message:
+          grade === 'ok'
+            ? `Reachable, IK error ${err.toFixed(2)} mm.`
+            : grade === 'near'
+              ? `Near target, IK error ${err.toFixed(2)} mm. Saving will use the nearest solved pose.`
+              : `Out of reach, IK error ${err.toFixed(2)} mm. Move the point closer before saving.`,
+      };
+      setValidation(next);
+      return { ok: grade === 'ok' || grade === 'near', data: next, point };
+    } catch (e) {
+      const next = { grade: 'bad', message: `Validation error: ${e?.message || e}` };
+      setValidation(next);
+      return { ok: false, data: next, point };
+    } finally {
+      setValidationBusy(false);
+    }
+  }, [bridge.connected, bridge.validateWaypoint, makeCandidatePoint]);
+
+  React.useEffect(() => {
+    if (!bridge.connected) {
+      setValidation({ grade: 'idle', message: 'WS disconnected: local preview only, reachability unknown.' });
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      validateCandidate({ silent: true }).catch(() => {});
+    }, 280);
+    return () => window.clearTimeout(timer);
+  }, [bridge.connected, validateCandidate]);
 
   const nextWaypointDraft = React.useCallback((usedIds) => {
     const ids = new Set(usedIds.map((id) => String(id || '').trim()).filter(Boolean));
@@ -381,12 +454,15 @@ function PlanPanel({ state, bridge }) {
     if (!id) return;
     setBusy(true);
     try {
-      const bounded = clampViewerPose(state.editPose);
-      state.setEditPose(bounded);
-      const point = {
-        ...viewerToBackendPose(bounded),
-        label: String(state.waypointLabel || id).trim() || id,
-      };
+      const checked = await validateCandidate({ silent: true });
+      if (!checked.ok) return;
+      let point = checked.point;
+      if (checked.data?.grade === 'near' && checked.data?.solved_pose) {
+        point = { ...checked.data.solved_pose, label: point.label };
+        state.setEditPose(backendToViewerPose(point));
+      } else {
+        state.setEditPose(clampViewerPose(state.editPose));
+      }
       if (bridge.connected) {
         const ret = await bridge.addWaypoint(id, point, point.label);
         if (!ret?.ok) return;
@@ -407,12 +483,15 @@ function PlanPanel({ state, bridge }) {
     if (!id) return;
     setBusy(true);
     try {
-      const bounded = clampViewerPose(state.editPose);
-      state.setEditPose(bounded);
-      const point = {
-        ...viewerToBackendPose(bounded),
-        label: String(state.waypointLabel || id).trim() || id,
-      };
+      const checked = await validateCandidate({ silent: true });
+      if (!checked.ok) return;
+      let point = checked.point;
+      if (checked.data?.grade === 'near' && checked.data?.solved_pose) {
+        point = { ...checked.data.solved_pose, label: point.label };
+        state.setEditPose(backendToViewerPose(point));
+      } else {
+        state.setEditPose(clampViewerPose(state.editPose));
+      }
       if (bridge.connected) {
         const ret = await bridge.updateWaypoint(id, point, point.label);
         if (!ret?.ok) return;
@@ -498,6 +577,9 @@ function PlanPanel({ state, bridge }) {
     }
   };
 
+  const validationClass = validationTone(validation);
+  const canSavePoint = !bridge.connected || validationClass === 'ok' || validationClass === 'near';
+
   return (
     <>
       <div className="simu-panel-title">Plan Points</div>
@@ -515,6 +597,16 @@ function PlanPanel({ state, bridge }) {
         </label>
       </section>
       <section className="simu-card">
+        <div className={`simu-validation-card ${validationClass}`}>
+          <span className="simu-validation-dot" />
+          <div>
+            <strong>{validationBusy ? 'Checking reachability...' : 'Reachability'}</strong>
+            <small>{validation.message}</small>
+          </div>
+          <button className="simu-mini-action queue" disabled={validationBusy} onClick={() => validateCandidate()}>
+            Validate
+          </button>
+        </div>
         <div className="simu-point-meta-grid">
           <label className="simu-field dense">
             <span>ID</span>
@@ -544,10 +636,10 @@ function PlanPanel({ state, bridge }) {
           ))}
         </div>
         <div className="simu-panel-actions">
-          <button className="ghostBtn small" disabled={busy} onClick={addPoint}>Add Point</button>
-          <button className="ghostBtn small" disabled={busy} onClick={updatePoint}>Update Point</button>
+          <button className="ghostBtn small primary" disabled={busy || !canSavePoint} onClick={addPoint}>Add Point</button>
+          <button className="ghostBtn small" disabled={busy || !canSavePoint} onClick={updatePoint}>Update Point</button>
           <button className="ghostBtn small" disabled={busy} onClick={() => deletePoint()}>Delete Point</button>
-          <button className="ghostBtn small" disabled={busy} onClick={clearPoints}>Clear Points</button>
+          <button className="ghostBtn small danger" disabled={busy} onClick={clearPoints}>Clear All Points</button>
         </div>
       </section>
       <section className="simu-card">
@@ -556,7 +648,7 @@ function PlanPanel({ state, bridge }) {
           {state.waypointList.map((wp) => (
             <div
               key={wp.id}
-              className={`simu-waypoint-item ${state.selectedWaypointId === wp.id ? 'active' : ''}`}
+              className={`simu-waypoint-item ${state.selectedWaypointId === wp.id ? 'active' : ''} ${activeMotionId === wp.id ? 'running' : ''}`}
               onClick={() => state.selectWaypoint(wp)}
               role="button"
               tabIndex={0}
@@ -592,7 +684,7 @@ function PlanPanel({ state, bridge }) {
         </label>
         <div className="simu-waypoint-list">
           {state.sequenceIds.map((id, idx) => (
-            <div className="simu-waypoint-item seq-item active" key={`seq-${id}-${idx}`}>
+            <div className={`simu-waypoint-item seq-item active ${activeMotionId === id ? 'running' : ''}`} key={`seq-${id}-${idx}`}>
               <span className="simu-waypoint-dot" style={{ background: waypointColor(id) }} />
               <span className="simu-waypoint-label">
                 <strong>{id}</strong>
@@ -641,16 +733,25 @@ function BridgePanel({ bridge }) {
   );
 }
 
+function ViewPanel({ state, bridge }) {
+  return (
+    <>
+      <div className="simu-panel-title">View & Diagnostics</div>
+      <ScenePanel state={state} />
+      <TrajectoryPanel state={state} />
+      <BridgePanel bridge={bridge} />
+    </>
+  );
+}
+
 export function SimuRightPanel({ state, bridge }) {
   return (
     <aside className="simu-right-panel">
       <div className="simu-panel-backdrop">
         <SimuBridgeDock state={state} bridge={bridge} />
         {state.activeSection === 'plan' && <PlanPanel state={state} bridge={bridge} />}
-        {state.activeSection === 'joint' && <JointPanel state={state} />}
-        {state.activeSection === 'trajectory' && <TrajectoryPanel state={state} />}
-        {state.activeSection === 'scene' && <ScenePanel state={state} />}
-        {state.activeSection === 'bridge' && <BridgePanel bridge={bridge} />}
+        {state.activeSection === 'manual' && <JointPanel state={state} />}
+        {state.activeSection === 'view' && <ViewPanel state={state} bridge={bridge} />}
       </div>
     </aside>
   );

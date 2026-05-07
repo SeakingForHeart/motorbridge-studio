@@ -474,6 +474,12 @@
   box-shadow: 0 4px 12px rgba(36, 50, 75, 0.08);
 }
 
+.simu-waypoint-item.running {
+  border-color: #f1b65c;
+  background: linear-gradient(180deg, #fffaf0, #ffffff);
+  box-shadow: 0 0 0 3px rgba(241, 182, 92, 0.14);
+}
+
 .simu-waypoint-dot {
   width: 10px;
   height: 10px;
@@ -549,6 +555,72 @@
   text-align: center;
 }
 
+.simu-validation-card {
+  align-items: center;
+  border: 1px solid #dbe2ec;
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  margin-bottom: 9px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.simu-validation-card strong {
+  display: block;
+  color: #17243a;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.simu-validation-card small {
+  color: #6d7b90;
+  display: block;
+  font-size: 10px;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.simu-validation-dot {
+  border-radius: 999px;
+  display: block;
+  height: 9px;
+  width: 9px;
+  background: #a8b4c6;
+  box-shadow: 0 0 0 3px rgba(168, 180, 198, 0.13);
+}
+
+.simu-validation-card.ok {
+  border-color: #b9dfcd;
+  background: #f1fbf6;
+}
+
+.simu-validation-card.ok .simu-validation-dot {
+  background: #20a36a;
+  box-shadow: 0 0 0 3px rgba(32, 163, 106, 0.14);
+}
+
+.simu-validation-card.near {
+  border-color: #f2d190;
+  background: #fff9ec;
+}
+
+.simu-validation-card.near .simu-validation-dot {
+  background: #e19b2d;
+  box-shadow: 0 0 0 3px rgba(225, 155, 45, 0.15);
+}
+
+.simu-validation-card.bad {
+  border-color: #efb9b9;
+  background: #fff5f5;
+}
+
+.simu-validation-card.bad .simu-validation-dot {
+  background: #d06464;
+  box-shadow: 0 0 0 3px rgba(208, 100, 100, 0.13);
+}
+
 .simu-kv {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
@@ -586,6 +658,25 @@
 .ghostBtn:hover {
   border-color: #aac0e0;
   color: #244f9f;
+}
+
+.ghostBtn.primary {
+  border-color: #9cb9eb;
+  background: #edf4ff;
+  color: #244f9f;
+  font-weight: 700;
+}
+
+.ghostBtn.danger {
+  border-color: #efc5c5;
+  background: #fff4f4;
+  color: #a74141;
+  font-weight: 700;
+}
+
+.ghostBtn.danger:hover {
+  border-color: #df9d9d;
+  color: #8f3030;
 }
 
 @media (max-width: 1200px) {
