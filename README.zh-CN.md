@@ -51,7 +51,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport dm-serial \
   --serial-port /dev/ttyACM0 --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 macOS：
@@ -61,7 +61,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport dm-serial \
   --serial-port /dev/cu.usbmodemXXXX --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 如果 macOS 报动态库加载错误，使用包内路径兜底：
@@ -72,7 +72,7 @@ PKG_DIR="$(python3 -c "import motorbridge, pathlib; print(pathlib.Path(motorbrid
 DYLD_LIBRARY_PATH="$PKG_DIR/lib:${DYLD_LIBRARY_PATH:-}" "$GW" \
   --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial \
   --serial-port /dev/cu.usbmodemXXXX --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 Windows（PowerShell）：
@@ -82,8 +82,14 @@ motorbridge-gateway -- `
   --bind 127.0.0.1:9002 `
   --vendor damiao --transport dm-serial `
   --serial-port COM3 --serial-baud 921600 `
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
+
+串口名提示：
+
+- Linux：在 `/dev` 下查看 `/dev/ttyACM0`、`/dev/ttyUSB0` 等设备。
+- macOS：在 `/dev` 下查看 `/dev/tty.usbmodemXXXX`、`/dev/tty.usbserial-XXXX` 等设备。
+- Windows：在设备管理器里查看新增加的 `COM` 端口，例如 `COM3`。
 
 ### B. PCAN / 标准 CAN 路径（`socketcan`/`pcan`）
 
@@ -91,12 +97,18 @@ motorbridge-gateway -- `
 
 Ubuntu（SocketCAN）：
 
+启动网关前，先把 SocketCAN 端口按 1Mbps 拉起。可以把这个 helper 加到 `~/.bashrc`，然后运行 `source ~/.bashrc && can_restart`：
+
+```bash
+alias can_restart='if ip link show can0 >/dev/null 2>&1; then echo "[can_restart] restarting can0"; sudo ip link set can0 down 2>/dev/null || true; sudo ip link set can0 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can0 type can bitrate 1000000 loopback off; sudo ip link set can0 up; ip -details link show can0; fi; if ip link show can1 >/dev/null 2>&1; then echo "[can_restart] restarting can1"; sudo ip link set can1 down 2>/dev/null || true; sudo ip link set can1 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can1 type can bitrate 1000000 loopback off; sudo ip link set can1 up; ip -details link show can1; fi'
+```
+
 ```bash
 motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport auto \
   --channel can0 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 macOS（PCBUSB 运行时）：
@@ -106,7 +118,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport auto \
   --channel can0 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 Windows（PCAN 后端）：
@@ -116,7 +128,7 @@ motorbridge-gateway -- `
   --bind 127.0.0.1:9002 `
   --vendor damiao --transport auto `
   --channel can0@1000000 `
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 ## 3）启动前端

@@ -44,7 +44,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport dm-serial \
   --serial-port /dev/ttyACM0 --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 macOS:
@@ -54,7 +54,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport dm-serial \
   --serial-port /dev/cu.usbmodemXXXX --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 If macOS reports dynamic-library loading errors, use package-local fallback:
@@ -65,7 +65,7 @@ PKG_DIR="$(python3 -c "import motorbridge, pathlib; print(pathlib.Path(motorbrid
 DYLD_LIBRARY_PATH="$PKG_DIR/lib:${DYLD_LIBRARY_PATH:-}" "$GW" \
   --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial \
   --serial-port /dev/cu.usbmodemXXXX --serial-baud 921600 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 Windows (PowerShell):
@@ -75,8 +75,14 @@ motorbridge-gateway -- `
   --bind 127.0.0.1:9002 `
   --vendor damiao --transport dm-serial `
   --serial-port COM3 --serial-baud 921600 `
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
+
+Serial port tips:
+
+- Linux: check `/dev` for ports such as `/dev/ttyACM0` or `/dev/ttyUSB0`.
+- macOS: check `/dev` for ports such as `/dev/tty.usbmodemXXXX` or `/dev/tty.usbserial-XXXX`.
+- Windows: check Device Manager for the newly added `COM` port, for example `COM3`.
 
 ### B. PCAN / Standard CAN path (`socketcan`/`pcan`)
 
@@ -84,12 +90,18 @@ Use this when the adapter is PCAN or other standard CAN interface.
 
 Ubuntu (SocketCAN):
 
+Before starting the gateway, bring SocketCAN interfaces up at 1Mbps. You can add this helper to `~/.bashrc`, then run `source ~/.bashrc && can_restart`:
+
+```bash
+alias can_restart='if ip link show can0 >/dev/null 2>&1; then echo "[can_restart] restarting can0"; sudo ip link set can0 down 2>/dev/null || true; sudo ip link set can0 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can0 type can bitrate 1000000 loopback off; sudo ip link set can0 up; ip -details link show can0; fi; if ip link show can1 >/dev/null 2>&1; then echo "[can_restart] restarting can1"; sudo ip link set can1 down 2>/dev/null || true; sudo ip link set can1 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can1 type can bitrate 1000000 loopback off; sudo ip link set can1 up; ip -details link show can1; fi'
+```
+
 ```bash
 motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport auto \
   --channel can0 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 macOS (PCBUSB runtime):
@@ -99,7 +111,7 @@ motorbridge-gateway -- \
   --bind 127.0.0.1:9002 \
   --vendor damiao --transport auto \
   --channel can0 \
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 Windows (PCAN backend):
@@ -109,7 +121,7 @@ motorbridge-gateway -- `
   --bind 127.0.0.1:9002 `
   --vendor damiao --transport auto `
   --channel can0@1000000 `
-  --model auto --motor-id 0x01 --feedback-id 0x11 --dt-ms 20
+  --dt-ms 20
 ```
 
 ## 3) Start Frontend

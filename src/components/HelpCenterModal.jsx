@@ -28,6 +28,11 @@ export function HelpCenterModal({ open, page, onClose }) {
     t('help_troubleshoot_4'),
   ];
   const quickStartItems = [t('help_quick_1'), t('help_quick_2'), t('help_quick_3'), t('help_quick_4')];
+  const canRestartCmd = `alias can_restart='if ip link show can0 >/dev/null 2>&1; then echo "[can_restart] restarting can0"; sudo ip link set can0 down 2>/dev/null || true; sudo ip link set can0 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can0 type can bitrate 1000000 loopback off; sudo ip link set can0 up; ip -details link show can0; fi; if ip link show can1 >/dev/null 2>&1; then echo "[can_restart] restarting can1"; sudo ip link set can1 down 2>/dev/null || true; sudo ip link set can1 type can bitrate 1000000 restart-ms 100 loopback off 2>/dev/null || sudo ip link set can1 type can bitrate 1000000 loopback off; sudo ip link set can1 up; ip -details link show can1; fi'
+
+# After adding it to ~/.bashrc:
+source ~/.bashrc
+can_restart`;
   const modeCmd = (name, cmd) => ({ name, cmd });
   const setupModesByPlatform = (platform) => {
     const channel = platform === 'windows' ? 'can0@1000000' : 'can0';
@@ -70,18 +75,18 @@ export function HelpCenterModal({ open, page, onClose }) {
       gatewayCmd: `motorbridge-gateway -- \\
   --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial \\
   --serial-port /dev/ttyACM0 --serial-baud 921600 \\
-  --model 4340P --motor-id 0x01 --feedback-id 0x11 --dt-ms 20`,
+  --dt-ms 20`,
     },
     {
       name: t('help_platform_macos'),
       gatewayCmd: `motorbridge-gateway -- \\
   --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial \\
   --serial-port /dev/tty.usbmodem14101 --serial-baud 921600 \\
-  --model 4340P --motor-id 0x01 --feedback-id 0x11 --dt-ms 20`,
+  --dt-ms 20`,
     },
     {
       name: t('help_platform_windows'),
-      gatewayCmd: `motorbridge-gateway -- --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial --serial-port COM3 --serial-baud 921600 --model 4340P --motor-id 0x01 --feedback-id 0x11 --dt-ms 20`,
+      gatewayCmd: `motorbridge-gateway -- --bind 127.0.0.1:9002 --vendor damiao --transport dm-serial --serial-port COM3 --serial-baud 921600 --dt-ms 20`,
     },
   ];
   const glossaryItems = [
@@ -126,12 +131,15 @@ export function HelpCenterModal({ open, page, onClose }) {
               <b>{t('help_setup_risk_title')}</b>
               <span>{t('help_setup_risk_desc')}</span>
             </div>
+            <div className="helpCmdBlock">
+              <span className="helpCmdLabel">{t('help_standard_can_restart_cmd')}</span>
+              <pre>{canRestartCmd}</pre>
+            </div>
             <div className="helpPlatformGrid">
               {setupByPlatform.map((item) => (
                 <article key={item.name} className="helpPlatformCard">
                   <div className="helpPlatformHead">
                     <b>{item.name}</b>
-                    <span className="chip">{t('help_setup_install_cmd')}</span>
                   </div>
                   <div className="helpCmdBlock">
                     <span className="helpCmdLabel">{t('help_setup_install_cmd')}</span>
@@ -154,6 +162,7 @@ export function HelpCenterModal({ open, page, onClose }) {
             <ul className="helpList">
               <li>{t('help_dmserial_1')}</li>
               <li>{t('help_dmserial_2')}</li>
+              <li>{t('help_dmserial_3')}</li>
             </ul>
             <div className="helpPlatformGrid">
               {dmSerialByPlatform.map((item) => (
