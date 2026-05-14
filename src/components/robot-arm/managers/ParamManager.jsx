@@ -1,17 +1,18 @@
 import React from 'react';
 import { useI18n } from '../../../i18n';
 import { DAMIAO_ARM_PARAM_DEFS } from '../../../lib/appConfig';
-import { REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE } from '../../../lib/robotArm';
+import { REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE, armVendorForProfile } from '../../../lib/robotArm';
 import { parseNum } from '../../../lib/utils';
 import { ParamTable } from '../ParamTable';
 
 function createParamValueDefaults() {
   return Object.fromEntries(
-    DAMIAO_ARM_PARAM_DEFS.map((def) => [def.key, String(def.defaultValue ?? '')]),
+    DAMIAO_ARM_PARAM_DEFS.map((def) => [def.key, String(def.defaultValue ?? '')])
   );
 }
 
 export function ParamManager({
+  robotArmModel,
   robotArmJointRows,
   readRobotArmControlParams,
   writeRobotArmControlParams,
@@ -33,8 +34,15 @@ export function ParamManager({
     percent: 0,
   });
   const damiaoParamDefs = React.useMemo(() => DAMIAO_ARM_PARAM_DEFS, []);
-  const writableParamDefs = React.useMemo(() => damiaoParamDefs.filter((x) => x.writable !== false), [damiaoParamDefs]);
-  const riskyParamDefs = React.useMemo(() => writableParamDefs.filter((x) => x.risky), [writableParamDefs]);
+  const paramSupported = armVendorForProfile(robotArmModel) === 'damiao';
+  const writableParamDefs = React.useMemo(
+    () => damiaoParamDefs.filter((x) => x.writable !== false),
+    [damiaoParamDefs]
+  );
+  const riskyParamDefs = React.useMemo(
+    () => writableParamDefs.filter((x) => x.risky),
+    [writableParamDefs]
+  );
 
   React.useEffect(() => {
     setParamRows((prev) =>
@@ -50,13 +58,13 @@ export function ParamManager({
             values: createParamValueDefaults(),
           }
         );
-      }),
+      })
     );
   }, [robotArmJointRows]);
 
   const patchParam = React.useCallback((key, field, value) => {
     setParamRows((prev) =>
-      prev.map((x) => (x.key === key ? { ...x, values: { ...x.values, [field]: value } } : x)),
+      prev.map((x) => (x.key === key ? { ...x, values: { ...x.values, [field]: value } } : x))
     );
   }, []);
 
@@ -65,27 +73,37 @@ export function ParamManager({
     return Math.abs(a - b) <= eps;
   }, []);
 
-  const applyReadResultToRows = React.useCallback((result) => {
-    setParamRows((prev) =>
-      prev.map((x) => {
-        const r = result?.[x.key];
-        if (!r) return x;
-        if (!r.ok) return { ...x, loaded: false, error: r.error || 'read failed' };
-        const v = r.values || {};
-        return {
-          ...x,
-          loaded: true,
-          error: '',
-          values: Object.fromEntries(
-            damiaoParamDefs.map((def) => [def.key, String(v[def.key] ?? x.values?.[def.key] ?? '')]),
-          ),
-        };
-      }),
-    );
-  }, [damiaoParamDefs]);
+  const applyReadResultToRows = React.useCallback(
+    (result) => {
+      setParamRows((prev) =>
+        prev.map((x) => {
+          const r = result?.[x.key];
+          if (!r) return x;
+          if (!r.ok) return { ...x, loaded: false, error: r.error || 'read failed' };
+          const v = r.values || {};
+          return {
+            ...x,
+            loaded: true,
+            error: '',
+            values: Object.fromEntries(
+              damiaoParamDefs.map((def) => [
+                def.key,
+                String(v[def.key] ?? x.values?.[def.key] ?? ''),
+              ])
+            ),
+          };
+        })
+      );
+    },
+    [damiaoParamDefs]
+  );
 
   const readParams = React.useCallback(async () => {
     setParamPanelOpen(true);
+    if (!paramSupported) {
+      setParamInfo(t('arm_params_damiao_only'));
+      return;
+    }
     setParamBusy(true);
     setParamInfo('');
     try {
@@ -98,22 +116,28 @@ export function ParamManager({
     } finally {
       setParamBusy(false);
     }
-  }, [applyReadResultToRows, paramRows, readRobotArmControlParams, t]);
+  }, [applyReadResultToRows, paramRows, paramSupported, readRobotArmControlParams, t]);
 
   const writeParams = React.useCallback(async () => {
     setParamPanelOpen(true);
+    if (!paramSupported) {
+      setParamInfo(t('arm_params_damiao_only'));
+      return;
+    }
     setParamBusy(true);
     setParamInfo('');
     try {
       const onlineDamiaoRows = paramRows.filter(
-        (x) => String(x?.hit?.vendor) === 'damiao' && Boolean(x?.hit?.online),
+        (x) => String(x?.hit?.vendor) === 'damiao' && Boolean(x?.hit?.online)
       );
       if (onlineDamiaoRows.length === 0) {
         throw new Error('no online damiao joints');
       }
       const blockedRows = onlineDamiaoRows.filter((x) => !x.loaded || x.error);
       if (blockedRows.length > 0) {
-        throw new Error(`read parameters first for joints: ${blockedRows.map((x) => `J${x.joint}`).join(', ')}`);
+        throw new Error(
+          `read parameters first for joints: ${blockedRows.map((x) => `J${x.joint}`).join(', ')}`
+        );
       }
 
       const rows = onlineDamiaoRows.map((x) => ({
@@ -127,19 +151,22 @@ export function ParamManager({
             if (def.key === 'ctrlMode') parsed = Math.max(1, Math.min(4, Math.round(parsed)));
             if (def.dataType === 'u32') parsed = Math.max(0, Math.round(parsed));
             return [def.key, parsed];
-          }),
+          })
         ),
       }));
       const riskyKeys = riskyParamDefs.map((def) => def.key);
       const changedRisky = rows.some((row) =>
         riskyKeys.some(
-          (key) => String(row.values?.[key] ?? '') !== String(paramRows.find((x) => x.key === row.key)?.values?.[key] ?? ''),
-        ),
+          (key) =>
+            String(row.values?.[key] ?? '') !==
+            String(paramRows.find((x) => x.key === row.key)?.values?.[key] ?? '')
+        )
       );
       if (changedRisky) {
         const confirmed = await askZeroConfirm({
           title: 'Confirm risky parameter write',
-          message: 'About to write ESC_ID / MST_ID / TIMEOUT / can_br for all loaded joints.\n\nOnly continue if IDs and bus settings are confirmed.',
+          message:
+            'About to write ESC_ID / MST_ID / TIMEOUT / can_br for all loaded joints.\n\nOnly continue if IDs and bus settings are confirmed.',
           danger: true,
         });
         if (!confirmed) return;
@@ -186,6 +213,7 @@ export function ParamManager({
     askZeroConfirm,
     closeEnough,
     paramRows,
+    paramSupported,
     readRobotArmControlParams,
     riskyParamDefs,
     t,
@@ -195,6 +223,10 @@ export function ParamManager({
 
   const applyDefaultTemplate = React.useCallback(() => {
     setParamPanelOpen(true);
+    if (!paramSupported) {
+      setParamInfo(t('arm_params_damiao_only'));
+      return;
+    }
     setParamRows((prev) =>
       prev.map((row) => {
         const tpl = REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE[row.joint];
@@ -206,22 +238,24 @@ export function ParamManager({
             ...tpl,
           },
         };
-      }),
+      })
     );
     setParamInfo(t('arm_params_template_applied'));
-  }, [t]);
+  }, [paramSupported, t]);
 
   const canWriteParams = React.useMemo(() => {
+    if (!paramSupported) return false;
     const onlineDamiaoRows = paramRows.filter(
-      (row) => String(row?.hit?.vendor) === 'damiao' && Boolean(row?.hit?.online),
+      (row) => String(row?.hit?.vendor) === 'damiao' && Boolean(row?.hit?.online)
     );
     if (onlineDamiaoRows.length === 0) return false;
     return onlineDamiaoRows.every((row) => row.loaded && !row.error);
-  }, [paramRows]);
+  }, [paramRows, paramSupported]);
 
   const manager = {
     paramPanelOpen,
     paramBusy,
+    paramSupported,
     readParams,
     writeParams,
     applyDefaultTemplate,
@@ -236,6 +270,7 @@ export function ParamManager({
         paramRows={paramRows}
         paramDefs={damiaoParamDefs}
         canWriteParams={canWriteParams}
+        paramSupported={paramSupported}
         patchParam={patchParam}
         readParams={readParams}
         writeParams={writeParams}

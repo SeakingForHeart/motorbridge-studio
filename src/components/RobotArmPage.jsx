@@ -1,14 +1,15 @@
 import React from 'react';
 import { useI18n } from '../i18n';
-import {
-  REBOT_ARM_JOINT_LIMITS,
-  ROBOT_ARM_MODELS,
-  ZERO_SAFE_EPS_RAD,
-} from '../lib/robotArm';
+import { REBOT_ARM_JOINT_LIMITS, ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD } from '../lib/robotArm';
 import { parseNum } from '../lib/utils';
 import { ArmUrdfViewer } from './ArmUrdfViewer';
 import { ProgressBar } from './ProgressBar';
-import { useConnectionContext, useControlContext, usePreferencesContext, useRobotArmContext } from '../hooks/useMotorStudioContext';
+import {
+  useConnectionContext,
+  useControlContext,
+  usePreferencesContext,
+  useRobotArmContext,
+} from '../hooks/useMotorStudioContext';
 import { JointList } from './robot-arm/JointList';
 import { JointControlPanel } from './robot-arm/JointControlPanel';
 import { SelfCheckReport } from './robot-arm/SelfCheckReport';
@@ -62,6 +63,7 @@ function RobotArmToolbar({
   readParams,
   writeParams,
   applyDefaultTemplate,
+  paramSupported,
   paramPanelOpen,
   runDemo,
   stopDemo,
@@ -87,10 +89,18 @@ function RobotArmToolbar({
         <button className="firstUseBtn" onClick={onOpenFirstUse}>
           {t('arm_first_use_btn')}
         </button>
-        <button className="primary" disabled={!canAction || armToolbarBusy} onClick={scanRobotArmAll}>
+        <button
+          className="primary"
+          disabled={!canAction || armToolbarBusy}
+          onClick={scanRobotArmAll}
+        >
           {t('arm_scan_all')}
         </button>
-        <button className="ghostBtn" disabled={!canAction || armToolbarBusy} onClick={runRobotArmSelfCheck}>
+        <button
+          className="ghostBtn"
+          disabled={!canAction || armToolbarBusy}
+          onClick={runRobotArmSelfCheck}
+        >
           {t('arm_self_check')}
         </button>
         <button disabled={!canAction || armToolbarBusy} onClick={enableAllRobotArm}>
@@ -99,19 +109,35 @@ function RobotArmToolbar({
         <button disabled={!canAction || armToolbarBusy} onClick={disableAllRobotArm}>
           {t('arm_disable_all')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={onZeroAllSafe} title={t('arm_zero_all_guard_hint')}>
+        <button
+          disabled={!canAction || armToolbarBusy}
+          onClick={onZeroAllSafe}
+          title={t('arm_zero_all_guard_hint')}
+        >
           {t('arm_zero_all')}
         </button>
         <button disabled={!canAction || armToolbarBusy} onClick={resetPoseRobotArm}>
           {t('arm_reset_pose')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={readParams}>
+        <button
+          disabled={!canAction || armToolbarBusy || !paramSupported}
+          onClick={readParams}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_read_params')}
         </button>
-        <button disabled={!canAction || armToolbarBusy || !paramPanelOpen} onClick={writeParams}>
+        <button
+          disabled={!canAction || armToolbarBusy || !paramPanelOpen || !paramSupported}
+          onClick={writeParams}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_write_params')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={applyDefaultTemplate}>
+        <button
+          disabled={!canAction || armToolbarBusy || !paramSupported}
+          onClick={applyDefaultTemplate}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_apply_default_template')}
         </button>
         <button disabled={!canAction || armToolbarBusy} onClick={runDemo}>
@@ -152,13 +178,25 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
             })}
           </span>
           <div className="row compactToolbar">
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy} onClick={() => trail.setUrdfClearTrailSeq((v) => v + 1)}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy}
+              onClick={() => trail.setUrdfClearTrailSeq((v) => v + 1)}
+            >
               {t('arm_clear_traj')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy} onClick={() => trail.setUrdfExportTrailSeq((v) => v + 1)}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy}
+              onClick={() => trail.setUrdfExportTrailSeq((v) => v + 1)}
+            >
               {t('arm_export_traj')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy} onClick={trail.openImportTrailDialog}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy}
+              onClick={trail.openImportTrailDialog}
+            >
               {t('arm_import_traj')}
             </button>
             <button
@@ -168,25 +206,53 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
             >
               {t('arm_replay_traj')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy} onClick={trail.saveCurrentSequenceToLibrary}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy}
+              onClick={trail.saveCurrentSequenceToLibrary}
+            >
               {t('arm_seq_save_current')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length} onClick={() => trail.loadSelectedSequence({ replay: false })}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length}
+              onClick={() => trail.loadSelectedSequence({ replay: false })}
+            >
               {t('arm_seq_load')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length} onClick={() => trail.loadSelectedSequence({ replay: true })}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length}
+              onClick={() => trail.loadSelectedSequence({ replay: true })}
+            >
               {t('arm_seq_replay_selected')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length} onClick={trail.deleteSelectedSequence}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy || !trail.urdfSeqLibrary.length}
+              onClick={trail.deleteSelectedSequence}
+            >
               {t('arm_seq_delete')}
             </button>
-            <button className="ghostBtn small" disabled={!trail.urdfReplayBusy} onClick={() => trail.setUrdfReplayStopSeq((v) => v + 1)}>
+            <button
+              className="ghostBtn small"
+              disabled={!trail.urdfReplayBusy}
+              onClick={() => trail.setUrdfReplayStopSeq((v) => v + 1)}
+            >
               {t('arm_replay_stop')}
             </button>
-            <button className="ghostBtn small" disabled={!trail.urdfReplayBusy} onClick={() => trail.setUrdfReplayFinishSeq((v) => v + 1)}>
+            <button
+              className="ghostBtn small"
+              disabled={!trail.urdfReplayBusy}
+              onClick={() => trail.setUrdfReplayFinishSeq((v) => v + 1)}
+            >
               {t('arm_replay_finish')}
             </button>
-            <button className="ghostBtn small" disabled={trail.urdfReplayBusy} onClick={() => trail.setUrdfResetSeq((v) => v + 1)}>
+            <button
+              className="ghostBtn small"
+              disabled={trail.urdfReplayBusy}
+              onClick={() => trail.setUrdfResetSeq((v) => v + 1)}
+            >
               {t('arm_reset_view')}
             </button>
           </div>
@@ -202,7 +268,9 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
                 step="0.0005"
                 disabled={trail.urdfReplayBusy}
                 value={gripperOpening}
-                onChange={(e) => setGripperOpening(Math.max(0, Math.min(0.0515, Number(e.target.value) || 0)))}
+                onChange={(e) =>
+                  setGripperOpening(Math.max(0, Math.min(0.0515, Number(e.target.value) || 0)))
+                }
               />
               <code>{Number(gripperOpening || 0).toFixed(4)} m</code>
             </div>
@@ -235,7 +303,11 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
           </label>
           <label className="armSimField">
             <span>{t('arm_traj_style')}</span>
-            <select disabled={trail.urdfReplayBusy} value={trail.urdfTrailStyle} onChange={(e) => trail.setUrdfTrailStyle(e.target.value)}>
+            <select
+              disabled={trail.urdfReplayBusy}
+              value={trail.urdfTrailStyle}
+              onChange={(e) => trail.setUrdfTrailStyle(e.target.value)}
+            >
               <option value="multi">{t('arm_traj_style_multi')}</option>
               <option value="mono">{t('arm_traj_style_mono')}</option>
             </select>
@@ -304,12 +376,7 @@ export function RobotArmPage() {
   const { t } = useI18n();
   const { connected, canAction } = useConnectionContext();
   const { uiPrefs, setUiPref } = usePreferencesContext();
-  const {
-    patchControl,
-    controlMotor,
-    zeroMotor,
-    refreshMotorState,
-  } = useControlContext();
+  const { patchControl, controlMotor, zeroMotor, refreshMotorState } = useControlContext();
   const {
     robotArmModel,
     armScanBusy,
@@ -397,13 +464,13 @@ export function RobotArmPage() {
 
   const activeRow = React.useMemo(
     () => robotArmJointRows.find((x) => x.key === activeJointKey) || robotArmJointRows[0] || null,
-    [robotArmJointRows, activeJointKey],
+    [robotArmJointRows, activeJointKey]
   );
 
   const liveMove = Boolean(uiPrefs?.armSliderLiveMove);
   const onlineCount = React.useMemo(
     () => robotArmJointRows.filter((row) => Boolean(row?.hit?.online)).length,
-    [robotArmJointRows],
+    [robotArmJointRows]
   );
 
   return (
@@ -448,6 +515,7 @@ export function RobotArmPage() {
                       sequence.demoBusy;
                     return (
                       <ParamManager
+                        robotArmModel={robotArmModel}
                         robotArmJointRows={robotArmJointRows}
                         readRobotArmControlParams={readRobotArmControlParams}
                         writeRobotArmControlParams={writeRobotArmControlParams}
@@ -457,21 +525,26 @@ export function RobotArmPage() {
                       >
                         {(params) => {
                           const toolbarBusy = armToolbarBusy || params.paramBusy;
-                          const perJointBusy = armBulkBusy || params.paramBusy || trail.urdfReplayBusy;
+                          const perJointBusy =
+                            armBulkBusy || params.paramBusy || trail.urdfReplayBusy;
                           const sliderValue = activeRow
-                            ? clampByLimit(parseNum(activeRow.control.target, 0), zero.jointLimit(activeRow.joint))
+                            ? clampByLimit(
+                                parseNum(activeRow.control.target, 0),
+                                zero.jointLimit(activeRow.joint)
+                              )
                             : 0;
                           const jointTargets = {};
                           robotArmJointRows.forEach((row) => {
                             jointTargets[`joint${row.joint}`] = clampByLimit(
                               parseNum(row.control.target, 0),
-                              zero.jointLimit(row.joint),
+                              zero.jointLimit(row.joint)
                             );
                           });
                           const joint7Target = Number(jointTargets.joint7);
                           const linkedGripperOpening = mapJoint7ToGripperOpening(joint7Target);
-                          const effectiveGripperOpening =
-                            Number.isFinite(joint7Target) ? linkedGripperOpening : Number(gripperOpening) || 0;
+                          const effectiveGripperOpening = Number.isFinite(joint7Target)
+                            ? linkedGripperOpening
+                            : Number(gripperOpening) || 0;
                           jointTargets.gripper_joint1 = effectiveGripperOpening;
                           jointTargets.gripper_joint2 = effectiveGripperOpening;
 
@@ -491,6 +564,7 @@ export function RobotArmPage() {
                                 readParams={params.readParams}
                                 writeParams={params.writeParams}
                                 applyDefaultTemplate={params.applyDefaultTemplate}
+                                paramSupported={params.paramSupported}
                                 paramPanelOpen={params.paramPanelOpen}
                                 runDemo={sequence.runDemo}
                                 stopDemo={sequence.stopDemo}
@@ -501,7 +575,10 @@ export function RobotArmPage() {
                               />
                               {params.paramTable}
 
-                              <ProgressBar active={armScanBusy || armScanProgress?.active} progress={armScanProgress} />
+                              <ProgressBar
+                                active={armScanBusy || armScanProgress?.active}
+                                progress={armScanProgress}
+                              />
 
                               {armBulkBusy && <div className="tip">{t('arm_bulk_busy')}</div>}
                               <ProgressBar
@@ -512,13 +589,19 @@ export function RobotArmPage() {
                               <SelfCheckReport report={armSelfCheckReport} />
                               {onlineCount > 0 && onlineCount < robotArmJointRows.length && (
                                 <div className="tip">
-                                  {t('arm_demo_online_hint', { online: onlineCount, total: robotArmJointRows.length })}
+                                  {t('arm_demo_online_hint', {
+                                    online: onlineCount,
+                                    total: robotArmJointRows.length,
+                                  })}
                                 </div>
                               )}
                               {!zero.zeroSafety.ok && (
                                 <div className="tip warnText">
-                                  {t('arm_zero_all_guard_hint')} - {t('arm_zero_all_blocked', {
-                                    joints: zero.zeroSafety.notReady.map((x) => `J${x.joint}`).join(', '),
+                                  {t('arm_zero_all_guard_hint')} -{' '}
+                                  {t('arm_zero_all_blocked', {
+                                    joints: zero.zeroSafety.notReady
+                                      .map((x) => `J${x.joint}`)
+                                      .join(', '),
                                     eps: ZERO_SAFE_EPS_RAD.toFixed(2),
                                   })}
                                 </div>

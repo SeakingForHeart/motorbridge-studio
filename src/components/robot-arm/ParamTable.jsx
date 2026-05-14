@@ -52,6 +52,7 @@ export function ParamTable({
   paramRows,
   paramDefs,
   canWriteParams,
+  paramSupported,
   patchParam,
   readParams,
   writeParams,
@@ -68,20 +69,38 @@ export function ParamTable({
         <span className="tip">{t('arm_params_hint')}</span>
       </div>
       <div className="row toolbar compactToolbar">
-        <button disabled={!canAction || armToolbarBusy} onClick={readParams}>
+        <button
+          disabled={!canAction || armToolbarBusy || !paramSupported}
+          onClick={readParams}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_read_params')}
         </button>
-        <button className="primary" disabled={!canAction || armToolbarBusy || !canWriteParams} onClick={writeParams}>
+        <button
+          className="primary"
+          disabled={!canAction || armToolbarBusy || !canWriteParams || !paramSupported}
+          onClick={writeParams}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_write_params')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={applyDefaultTemplate}>
+        <button
+          disabled={!canAction || armToolbarBusy || !paramSupported}
+          onClick={applyDefaultTemplate}
+          title={paramSupported ? '' : t('arm_params_damiao_only')}
+        >
           {t('arm_apply_default_template')}
         </button>
         <button className="ghostBtn" disabled={armToolbarBusy} onClick={onClose}>
           {t('close')}
         </button>
       </div>
-      {!canWriteParams && <div className="tip">Read all online Damiao joint parameters successfully before write.</div>}
+      {!paramSupported && <div className="tip">{t('arm_params_damiao_only')}</div>}
+      {paramSupported && !canWriteParams && (
+        <div className="tip">
+          Read all online Damiao joint parameters successfully before write.
+        </div>
+      )}
       {paramInfo && <div className="tip">{paramInfo}</div>}
       <ProgressBar active={paramBusy || paramProgress?.active} progress={paramProgress} />
       {GROUPS.map((group) => {
@@ -121,7 +140,7 @@ export function ParamTable({
                           },
                           row,
                           patchParam,
-                          paramBusy,
+                          paramBusy
                         )}
                       </td>
                     ))}
