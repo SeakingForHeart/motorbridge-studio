@@ -34,6 +34,8 @@ export function useMotorStudio() {
   const [logs, setLogs] = useState([]);
   const telemetryTargetRef = useRef('');
   const telemetryPollBusyRef = useRef(false);
+  const sendCmdRef = useRef(null);
+  const setTargetForRef = useRef(null);
 
   const pushLog = (msg, level = 'info') => {
     setLogs((prev) => [...prev, { t: ts(), msg, level }].slice(-500));
@@ -60,6 +62,10 @@ export function useMotorStudio() {
     setStateSnapshot,
     onGatewayState: handleGatewayState,
   });
+  useEffect(() => {
+    sendCmdRef.current = connectionState.sendCmd;
+    setTargetForRef.current = connectionState.setTargetFor;
+  }, [connectionState.sendCmd, connectionState.setTargetFor]);
   const preferences = usePreferences();
 
   const scanState = useScanState({
@@ -130,37 +136,56 @@ export function useMotorStudio() {
   const activeControl = activeMotor
     ? normalizeControlForHit(activeMotor, controls[motorKey(activeMotor)])
     : null;
+  const activeTelemetryKey = activeMotor ? motorKey(activeMotor) : '';
+  const activeTelemetryVendor = String(activeMotor?.vendor || '');
+  const activeTelemetryModel =
+    activeMotor?.model ||
+    scanState.vendors?.[activeMotor?.vendor]?.model ||
+    activeMotor?.vendor ||
+    '';
+  const activeTelemetryEsc = Number(activeMotor?.esc_id ?? Number.NaN);
+  const activeTelemetryMst = Number(activeMotor?.mst_id ?? Number.NaN);
 
   useEffect(() => {
     if (!connectionState.connected) {
       telemetryTargetRef.current = '';
       return;
     }
-    if (!activeMotor) return;
-    const key = `${motorKey(activeMotor)}:${activeMotor.model || activeMotor.model_guess || ''}`;
+    if (!activeTelemetryKey) return;
+    const key = `${activeTelemetryKey}:${activeTelemetryModel}`;
     if (telemetryTargetRef.current === key) return;
     telemetryTargetRef.current = key;
-    connectionState
-      .setTargetFor(
-        activeMotor.vendor,
-        activeMotor.model || scanState.vendors?.[activeMotor.vendor]?.model || activeMotor.vendor,
-        activeMotor.esc_id,
-        activeMotor.mst_id
+    setTargetForRef
+      .current?.(
+        activeTelemetryVendor,
+        activeTelemetryModel,
+        activeTelemetryEsc,
+        activeTelemetryMst
       )
       .catch((e) => {
         telemetryTargetRef.current = '';
         pushLog(`telemetry target setup failed: ${e.message || e}`, 'err');
       });
-  }, [activeMotor, connectionState, scanState.vendors]);
+  }, [
+    activeTelemetryEsc,
+    activeTelemetryKey,
+    activeTelemetryModel,
+    activeTelemetryMst,
+    activeTelemetryVendor,
+    connectionState.connected,
+  ]);
 
   useEffect(() => {
-    if (!connectionState.connected || !activeMotor || String(activeMotor.vendor) !== 'robstride') {
+    if (
+      !connectionState.connected ||
+      !activeTelemetryKey ||
+      activeTelemetryVendor !== 'robstride'
+    ) {
       telemetryPollBusyRef.current = false;
       return undefined;
     }
-    const activeKey = motorKey(activeMotor);
     const readNumber = async (paramId, type) => {
-      const ret = await connectionState.sendCmd(
+      const ret = await sendCmdRef.current?.(
         'robstride_read_param',
         { param_id: paramId, type, timeout_ms: 180 },
         600
@@ -179,7 +204,7 @@ export function useMotorStudio() {
           readNumber(0x7005, 'i8'),
         ]);
         setHits((prev) => {
-          const index = prev.findIndex((h) => motorKey(h) === activeKey);
+          const index = prev.findIndex((h) => motorKey(h) === activeTelemetryKey);
           if (index < 0) return prev;
           const current = prev[index];
           const patch = { online: true, last_check_ms: Date.now(), updated_at_ms: Date.now() };
@@ -201,14 +226,14 @@ export function useMotorStudio() {
         telemetryPollBusyRef.current = false;
       }
     };
-    const initialTimer = window.setTimeout(poll, 250);
-    const interval = window.setInterval(poll, 250);
+    const initialTimer = window.setTimeout(poll, 200);
+    const interval = window.setInterval(poll, 1000);
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(interval);
       telemetryPollBusyRef.current = false;
     };
-  }, [activeMotor, connectionState, setHits]);
+  }, [activeTelemetryKey, activeTelemetryVendor, connectionState.connected, setHits]);
 
   const clearLogs = () => setLogs([]);
   const clearOfflineMotors = useCallback(
