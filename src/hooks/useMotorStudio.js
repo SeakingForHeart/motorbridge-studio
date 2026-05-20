@@ -197,9 +197,10 @@ export function useMotorStudio() {
       if (telemetryPollBusyRef.current) return;
       telemetryPollBusyRef.current = true;
       try {
-        const [pos, vel, vbus, runMode] = await Promise.all([
+        const [pos, vel, iqf, vbus, runMode] = await Promise.all([
           readNumber(0x7019, 'f32'),
           readNumber(0x701b, 'f32'),
+          readNumber(0x701a, 'f32'),
           readNumber(0x701c, 'f32'),
           readNumber(0x7005, 'i8'),
         ]);
@@ -210,6 +211,7 @@ export function useMotorStudio() {
           const patch = { online: true, last_check_ms: Date.now(), updated_at_ms: Date.now() };
           if (Number.isFinite(pos)) patch.pos = pos;
           if (Number.isFinite(vel)) patch.vel = vel;
+          if (Number.isFinite(iqf)) patch.iqf = iqf;
           if (Number.isFinite(vbus)) patch.vbus = vbus;
           if (Number.isFinite(runMode)) {
             const names = { 0: 'MIT', 1: 'Position', 2: 'Velocity', 3: 'Current', 5: 'CSP' };
