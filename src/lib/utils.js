@@ -158,6 +158,7 @@ export function normalizeHits(vendor, data, model) {
       // device_id can be vendor-specific payload value and may not match probe ID.
       const probeId = Number(h.probe ?? 0);
       const deviceId = Number(h.device_id ?? Number.NaN);
+      const modelPatch = robstrideModelLimits(model);
       out.push({
         vendor,
         model,
@@ -166,6 +167,7 @@ export function normalizeHits(vendor, data, model) {
         device_id: deviceId,
         responder_id: Number(h.responder_id ?? Number.NaN),
         mst_id: Number(h.feedback_id ?? 0xFD),
+        ...modelPatch,
         updated_at_ms: now,
       });
       continue;
@@ -180,4 +182,18 @@ export function normalizeHits(vendor, data, model) {
     });
   }
   return out;
+}
+
+export function robstrideModelLimits(model) {
+  const pmax = 4 * Math.PI;
+  const table = {
+    'rs-00': { pmax, vmax: 50, tmax: 17 },
+    'rs-01': { pmax, vmax: 44, tmax: 17 },
+    'rs-02': { pmax, vmax: 44, tmax: 17 },
+    'rs-03': { pmax, vmax: 50, tmax: 60 },
+    'rs-04': { pmax, vmax: 15, tmax: 120 },
+    'rs-05': { pmax, vmax: 33, tmax: 17 },
+    'rs-06': { pmax, vmax: 20, tmax: 60 },
+  };
+  return table[String(model || '').toLowerCase()] || {};
 }

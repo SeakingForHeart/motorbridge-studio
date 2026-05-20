@@ -5,6 +5,7 @@ import {
   motorKey,
   normalizeHits,
   parseNum,
+  robstrideModelLimits,
   toHex,
 } from './utils';
 import { SET_ID_VENDORS } from './constants';
@@ -36,6 +37,8 @@ export function modelForHit(h, vendors) {
 export function mapResponseToHit(h, data, extra = {}) {
   const d = data || {};
   const flags = d.flags && typeof d.flags === 'object' ? d.flags : undefined;
+  const isRobstride = String(h?.vendor) === 'robstride';
+  const modelPatch = isRobstride ? robstrideModelLimits(h?.model || h?.model_guess) : {};
   return {
     ...h,
     status: Number(d.status_code ?? h.status ?? Number.NaN),
@@ -51,11 +54,50 @@ export function mapResponseToHit(h, data, extra = {}) {
     device_id: Number(d.device_id ?? h.device_id ?? Number.NaN),
     motor_id: Number(d.motor_id ?? h.motor_id ?? Number.NaN),
     flags: flags ?? h.flags,
+    ...modelPatch,
     ...extra,
     online: true,
     last_check_ms: Date.now(),
     updated_at_ms: Date.now(),
   };
+}
+
+async function readRobstrideStateParams(sendCmd) {
+  const specs = [
+    ['pos', 0x7019, 'f32'],
+    ['iqf', 0x701a, 'f32'],
+    ['vel', 0x701b, 'f32'],
+    ['vbus', 0x701c, 'f32'],
+    ['run_mode', 0x7005, 'i8'],
+  ];
+  const patch = {};
+  for (const [key, paramId, type] of specs) {
+    try {
+      const ret = await sendCmd(
+        'robstride_read_param',
+        { param_id: paramId, type, timeout_ms: 200 },
+        CMD_TIMEOUTS.registerMs,
+      );
+      if (!ret?.ok) continue;
+      const value = Number(getResponseValue(ret));
+      if (Number.isFinite(value)) patch[key] = value;
+    } catch {
+      // Keep refresh useful even if one optional RobStride telemetry read misses.
+    }
+  }
+  if (Number.isFinite(patch.iqf)) patch.torq = patch.iqf;
+  if (Number.isFinite(patch.run_mode)) {
+    const names = {
+      0: 'MIT',
+      1: 'Position',
+      2: 'Velocity',
+      3: 'Current',
+      5: 'CSP',
+    };
+    patch.status = patch.run_mode;
+    patch.status_name = names[patch.run_mode] || `run_mode=${patch.run_mode}`;
+  }
+  return patch;
 }
 
 function clampMitForSafety(h, mode, target, kp, kd, tau) {
@@ -398,6 +440,7 @@ export async function refreshMotorStateOp({ h, vendors, setTargetFor, sendCmd, s
     if (!ret.ok) throw new Error(ret.error || 'state_once failed');
 
     const damiaoParamPatch = {};
+    let robstrideParamPatch = {};
 
     if (String(h.vendor) === 'damiao') {
       for (const def of DAMIAO_REFRESH_REGISTERS) {
@@ -413,11 +456,17 @@ export async function refreshMotorStateOp({ h, vendors, setTargetFor, sendCmd, s
         }
       }
     }
+    if (String(h.vendor) === 'robstride') {
+      robstrideParamPatch = await readRobstrideStateParams(sendCmd);
+    }
 
-    const nextHit = mapResponseToHit(h, ret.data, damiaoParamPatch);
+    const nextHit = mapResponseToHit(h, ret.data, { ...damiaoParamPatch, ...robstrideParamPatch });
     setHits((prev) => mergeHitsByVendor(prev, [nextHit]));
 
-    pushLog(`state refreshed ${h.vendor} ${toHex(h.esc_id)}${String(h.vendor) === 'damiao' ? ' + params' : ''}`, 'ok');
+    pushLog(
+      `state refreshed ${h.vendor} ${toHex(h.esc_id)}${String(h.vendor) === 'damiao' || String(h.vendor) === 'robstride' ? ' + params' : ''}`,
+      'ok',
+    );
     return nextHit;
   } catch (e) {
     const nextHit = {

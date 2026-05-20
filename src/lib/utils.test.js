@@ -20,4 +20,18 @@ describe('utils normalizeHits', () => {
     expect(normalized[0].device_id).toBe(35);
     expect(normalized[1].device_id).toBe(71);
   });
+
+  it('adds RobStride model limits to scan hits', () => {
+    const [hit] = normalizeHits(
+      'robstride',
+      {
+        hits: [{ probe: 4, device_id: 4, responder_id: 0xfd, feedback_id: 0xfd }],
+      },
+      'rs-00'
+    );
+
+    expect(hit.pmax).toBeCloseTo(4 * Math.PI);
+    expect(hit.vmax).toBe(50);
+    expect(hit.tmax).toBe(17);
+  });
 });
