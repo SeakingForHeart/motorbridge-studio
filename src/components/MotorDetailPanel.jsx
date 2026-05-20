@@ -49,10 +49,8 @@ function MetaItem({ label, value }) {
   );
 }
 
-function positionSliderBounds(activeMotor) {
-  const pmax = Number(activeMotor?.pmax);
-  const abs = Number.isFinite(pmax) && pmax > 0 ? Math.min(Math.max(pmax, 0.1), 20) : 3.14;
-  return { min: -abs, max: abs };
+function positionSliderBounds() {
+  return { min: -3.14, max: 3.14 };
 }
 
 export function MotorDetailPanel({
@@ -100,7 +98,7 @@ export function MotorDetailPanel({
     activeControl?.mode === 'pos_vel' || activeControl?.mode === 'force_pos';
   const liveSliderEnabled =
     Boolean(uiPrefs?.generalSliderLiveMove) && positionSliderEnabled && connected;
-  const sliderBounds = positionSliderBounds(activeMotor);
+  const sliderBounds = positionSliderBounds();
   const sliderTarget = Math.max(
     sliderBounds.min,
     Math.min(sliderBounds.max, Number(activeControl?.target) || 0)
@@ -207,7 +205,10 @@ export function MotorDetailPanel({
   );
 
   const onSliderTargetChange = (rawValue) => {
-    const target = parseNum(rawValue, sliderTarget);
+    const target = Math.max(
+      sliderBounds.min,
+      Math.min(sliderBounds.max, parseNum(rawValue, sliderTarget))
+    );
     patchControl(key, { target });
     scheduleLiveTargetMove(target);
   };
