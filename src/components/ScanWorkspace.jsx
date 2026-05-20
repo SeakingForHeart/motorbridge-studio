@@ -84,7 +84,7 @@ export function ScanWorkspace() {
                   </div>
 
                   <div className="field">
-                    <label>{vendor === 'damiao' ? t('feedback_base') : vendor === 'robstride' ? t('feedback_id') : t('extra')}</label>
+                    <label>{vendor === 'damiao' ? t('feedback_base') : vendor === 'robstride' ? t('feedback_ids') : t('extra')}</label>
                     {vendor === 'damiao' && (
                       <input
                         value={cfg.feedbackBase}
@@ -92,10 +92,13 @@ export function ScanWorkspace() {
                       />
                     )}
                     {vendor === 'robstride' && (
-                      <input
-                        value={cfg.feedbackId}
-                        onChange={(e) => setVendorField(setVendors, vendor, 'feedbackId', e.target.value)}
-                      />
+                      <>
+                        <input
+                          value={cfg.feedbackId}
+                          onChange={(e) => setVendorField(setVendors, vendor, 'feedbackId', e.target.value)}
+                        />
+                        <div className="tip">{t('robstride_feedback_ids_tip')}</div>
+                      </>
                     )}
                     {vendor !== 'damiao' && vendor !== 'robstride' && <input value="-" readOnly />}
                   </div>

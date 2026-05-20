@@ -5,6 +5,7 @@ import {
   buildSetIdPayload,
   getVendorScanDefaults,
 } from './vendors';
+import { DEFAULT_VENDOR_CONFIG } from './constants';
 
 describe('vendors helpers', () => {
   it('builds damiao scan payload extras', () => {
@@ -18,6 +19,12 @@ describe('vendors helpers', () => {
       feedback_ids: [0xfd],
     });
     expect(buildScanPayloadExtras('robstride', { feedbackId: '0xFD,0xFF,0xFE' })).toEqual({
+      feedback_ids: [0xfd, 0xff, 0xfe],
+    });
+  });
+
+  it('keeps RobStride default scan host IDs aligned with v0.3.5', () => {
+    expect(buildScanPayloadExtras('robstride', DEFAULT_VENDOR_CONFIG.robstride)).toEqual({
       feedback_ids: [0xfd, 0xff, 0xfe],
     });
   });

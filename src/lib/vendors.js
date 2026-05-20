@@ -26,7 +26,12 @@ export function buildScanPayloadExtras(vendor, cfg) {
   }
   if (vendor === 'robstride') {
     const raw = String(cfg.feedbackId ?? '').trim();
-    const parts = raw.includes(',') ? raw.split(',').map((x) => x.trim()).filter(Boolean) : [raw];
+    const parts = raw.includes(',')
+      ? raw
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [raw];
     const feedbackIds = [];
     const pushUnique = (id) => {
       if (Number.isFinite(id) && id >= 0 && !feedbackIds.includes(id)) feedbackIds.push(id);

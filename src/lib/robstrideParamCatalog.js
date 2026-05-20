@@ -126,8 +126,8 @@ export function toRobstrideCliType(dataType) {
   if (t === 'uint16') return 'u16';
   if (t === 'uint32') return 'u32';
   if (t === 'int8') return 'i8';
-  if (t === 'int16') return 'u16';
-  if (t === 'int32') return 'u32';
+  if (t === 'int16') return '';
+  if (t === 'int32') return '';
   if (t === 'float') return 'f32';
   return '';
 }

@@ -278,6 +278,9 @@ export async function controlMotorOp({
 
     let op = 'pos_vel';
     let payload = { vendor: h.vendor, continuous: false, pos: target, vlim, ensure_timeout_ms: 2000 };
+    if (String(h.vendor) === 'robstride') {
+      payload = { ...payload, loc_kp: kp };
+    }
 
     if (c.mode === 'mit') {
       op = 'mit';
@@ -296,6 +299,11 @@ export async function controlMotorOp({
     if (c.mode === 'mit') {
       pushLog(
         `move ${h.vendor} ${toHex(h.esc_id)} mode=mit target=${target.toFixed(3)} kp=${kp.toFixed(3)} kd=${kd.toFixed(3)} tau=${tau.toFixed(3)} ok`,
+        'ok',
+      );
+    } else if (String(h.vendor) === 'robstride' && c.mode === 'pos_vel') {
+      pushLog(
+        `move ${h.vendor} ${toHex(h.esc_id)} mode=pos_vel pos=${target.toFixed(3)} vlim=${vlim.toFixed(3)} loc_kp=${kp.toFixed(3)} ok`,
         'ok',
       );
     } else {
