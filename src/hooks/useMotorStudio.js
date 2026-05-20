@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motorKey, normalizeControlForHit, ts } from '../lib/utils';
+import { getResponseValue, motorKey, normalizeControlForHit, ts } from '../lib/utils';
 import { mapResponseToHit } from '../lib/motorStudioOps';
 import { usePersistedState } from './usePersistedState';
 import { useI18n } from '../i18n';
@@ -33,6 +33,7 @@ export function useMotorStudio() {
   const [stateSnapshot, setStateSnapshot] = useState('(no state yet)');
   const [logs, setLogs] = useState([]);
   const telemetryTargetRef = useRef('');
+  const telemetryPollBusyRef = useRef(false);
 
   const pushLog = (msg, level = 'info') => {
     setLogs((prev) => [...prev, { t: ts(), msg, level }].slice(-500));
@@ -151,6 +152,63 @@ export function useMotorStudio() {
         pushLog(`telemetry target setup failed: ${e.message || e}`, 'err');
       });
   }, [activeMotor, connectionState, scanState.vendors]);
+
+  useEffect(() => {
+    if (!connectionState.connected || !activeMotor || String(activeMotor.vendor) !== 'robstride') {
+      telemetryPollBusyRef.current = false;
+      return undefined;
+    }
+    const activeKey = motorKey(activeMotor);
+    const readNumber = async (paramId, type) => {
+      const ret = await connectionState.sendCmd(
+        'robstride_read_param',
+        { param_id: paramId, type, timeout_ms: 180 },
+        600
+      );
+      if (!ret?.ok) return Number.NaN;
+      return Number(getResponseValue(ret));
+    };
+    const poll = async () => {
+      if (telemetryPollBusyRef.current) return;
+      telemetryPollBusyRef.current = true;
+      try {
+        const [pos, vel, vbus, runMode] = await Promise.all([
+          readNumber(0x7019, 'f32'),
+          readNumber(0x701b, 'f32'),
+          readNumber(0x701c, 'f32'),
+          readNumber(0x7005, 'i8'),
+        ]);
+        setHits((prev) => {
+          const index = prev.findIndex((h) => motorKey(h) === activeKey);
+          if (index < 0) return prev;
+          const current = prev[index];
+          const patch = { online: true, last_check_ms: Date.now(), updated_at_ms: Date.now() };
+          if (Number.isFinite(pos)) patch.pos = pos;
+          if (Number.isFinite(vel)) patch.vel = vel;
+          if (Number.isFinite(vbus)) patch.vbus = vbus;
+          if (Number.isFinite(runMode)) {
+            const names = { 0: 'MIT', 1: 'Position', 2: 'Velocity', 3: 'Current', 5: 'CSP' };
+            patch.status = runMode;
+            patch.status_name = names[runMode] || `run_mode=${runMode}`;
+          }
+          const next = [...prev];
+          next[index] = { ...current, ...patch };
+          return next;
+        });
+      } catch {
+        // Keep passive telemetry quiet; explicit refresh/control operations still log failures.
+      } finally {
+        telemetryPollBusyRef.current = false;
+      }
+    };
+    const initialTimer = window.setTimeout(poll, 250);
+    const interval = window.setInterval(poll, 250);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+      telemetryPollBusyRef.current = false;
+    };
+  }, [activeMotor, connectionState, setHits]);
 
   const clearLogs = () => setLogs([]);
   const clearOfflineMotors = useCallback(
