@@ -35,7 +35,7 @@ export function modelForHit(h, vendors) {
 }
 
 export function mapResponseToHit(h, data, extra = {}) {
-  const d = data || {};
+  const d = data?.state && typeof data.state === 'object' ? data.state : data || {};
   const flags = d.flags && typeof d.flags === 'object' ? d.flags : undefined;
   const isRobstride = String(h?.vendor) === 'robstride';
   const modelPatch = isRobstride ? robstrideModelLimits(h?.model || h?.model_guess) : {};
@@ -85,7 +85,6 @@ async function readRobstrideStateParams(sendCmd) {
       // Keep refresh useful even if one optional RobStride telemetry read misses.
     }
   }
-  if (Number.isFinite(patch.iqf)) patch.torq = patch.iqf;
   if (Number.isFinite(patch.run_mode)) {
     const names = {
       0: 'MIT',
