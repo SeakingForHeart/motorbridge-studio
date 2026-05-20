@@ -1,5 +1,7 @@
 import React from 'react';
 import { useI18n } from '../../i18n';
+import { useConnectionContext } from '../../hooks/useMotorStudioContext';
+import { modesForVendor } from '../../lib/wsCapabilities';
 import { controlInputValue, parseNum, toHex } from '../../lib/utils';
 
 function modeDefaultsForRow(row, nextMode) {
@@ -39,16 +41,19 @@ export function JointControlPanel({
   showLimitToast,
 }) {
   const { t } = useI18n();
+  const { gatewayCapabilities } = useConnectionContext();
   if (!activeRow) return null;
   const vendor = String(activeRow?.hit?.vendor || '').toLowerCase();
   const mode = String(activeRow?.control?.mode || 'pos_vel');
-  const modeOptions = vendor === 'robstride' ? ['pos_vel', 'mit', 'vel'] : ['pos_vel', 'mit', 'vel', 'force_pos'];
+  const modeOptions = modesForVendor(gatewayCapabilities, vendor);
   const vlimDisabled = mode !== 'pos_vel' && mode !== 'force_pos';
   const tauDisabled = mode !== 'mit';
   const kpDisabled = mode !== 'mit';
   const kdDisabled = mode !== 'mit';
   const patchNumber = (field) => (e) => {
-    patchControl(activeRow.key, { [field]: parseNum(e.target.value, activeRow.control?.[field] ?? 0) });
+    patchControl(activeRow.key, {
+      [field]: parseNum(e.target.value, activeRow.control?.[field] ?? 0),
+    });
   };
   return (
     <div className="armControlPanel">
@@ -66,7 +71,9 @@ export function JointControlPanel({
           <label>{t('mode')}</label>
           <select
             value={activeRow.control.mode}
-            onChange={(e) => patchControl(activeRow.key, modeDefaultsForRow(activeRow, e.target.value))}
+            onChange={(e) =>
+              patchControl(activeRow.key, modeDefaultsForRow(activeRow, e.target.value))
+            }
           >
             {modeOptions.map((m) => (
               <option key={m} value={m}>
@@ -153,9 +160,11 @@ export function JointControlPanel({
           />
         </div>
         {limitWarn && <div className="tip warnText">{limitWarn}</div>}
-        {vendor === 'damiao' && Number(activeRow.joint) === 7 && activeRow.control.mode === 'mit' && (
-          <div className="tip warnText">{t('arm_joint7_mit_warn')}</div>
-        )}
+        {vendor === 'damiao' &&
+          Number(activeRow.joint) === 7 &&
+          activeRow.control.mode === 'mit' && (
+            <div className="tip warnText">{t('arm_joint7_mit_warn')}</div>
+          )}
       </div>
 
       <div className="row toolbar compactToolbar">

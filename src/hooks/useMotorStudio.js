@@ -16,15 +16,15 @@ export function useMotorStudio() {
   const { t } = useI18n();
 
   const [hits, setHits] = usePersistedState(LS_HITS_KEY, [], (cached) =>
-    Array.isArray(cached) ? cached : [],
+    Array.isArray(cached) ? cached : []
   );
   const [controls, setControls] = usePersistedState(LS_CONTROLS_KEY, {}, (cached) =>
-    cached && typeof cached === 'object' ? cached : {},
+    cached && typeof cached === 'object' ? cached : {}
   );
   const [activeMotorKey, setActiveMotorKey] = usePersistedState(
     LS_ACTIVE_MOTOR_KEY,
     '',
-    (cached) => (typeof cached === 'string' ? cached : ''),
+    (cached) => (typeof cached === 'string' ? cached : '')
   );
 
   const [selected, setSelected] = useState(new Set());
@@ -98,19 +98,25 @@ export function useMotorStudio() {
 
   const selectedHits = useMemo(
     () => hits.filter((h) => selected.has(motorKey(h))),
-    [hits, selected],
+    [hits, selected]
   );
   const activeMotor = useMemo(
     () => hits.find((h) => motorKey(h) === activeMotorKey) || null,
-    [hits, activeMotorKey],
+    [hits, activeMotorKey]
   );
   const activeControl = activeMotor
     ? normalizeControlForHit(activeMotor, controls[motorKey(activeMotor)])
     : null;
 
   const clearLogs = () => setLogs([]);
-  const clearOfflineMotors = useCallback(() => scanState.clearOfflineMotors(hits, setSelected), [hits, scanState]);
-  const removeMotorCard = useCallback((hit) => scanState.removeMotorCard(hit, setSelected), [scanState]);
+  const clearOfflineMotors = useCallback(
+    () => scanState.clearOfflineMotors(hits, setSelected),
+    [hits, scanState]
+  );
+  const removeMotorCard = useCallback(
+    (hit) => scanState.removeMotorCard(hit, setSelected),
+    [scanState]
+  );
   const clearDevices = useCallback(async () => {
     const cleared = await scanState.clearDevices();
     if (cleared) setSelected(new Set());
@@ -130,12 +136,14 @@ export function useMotorStudio() {
       connected: connectionState.connected,
       targetTransport: connectionState.targetTransport,
       targetSerialPort: connectionState.targetSerialPort,
+      gatewayCapabilities: connectionState.gatewayCapabilities,
+      capabilitiesSource: connectionState.capabilitiesSource,
       connectWs: connectionState.connectWs,
       disconnectWs: connectionState.disconnectWs,
       sendCmd: connectionState.sendCmd,
       canAction,
     }),
-    [connectionState, canAction],
+    [connectionState, canAction]
   );
 
   const scan = useMemo(
@@ -175,7 +183,7 @@ export function useMotorStudio() {
       scanState,
       selectedHits,
       setActiveMotorKey,
-    ],
+    ]
   );
 
   const control = useMemo(
@@ -190,7 +198,7 @@ export function useMotorStudio() {
       runMotorOp: motorControl.runMotorOp,
       probeMotor: motorControl.probeMotor,
     }),
-    [controls, motorControl],
+    [controls, motorControl]
   );
 
   const robotArm = useMemo(
@@ -215,7 +223,7 @@ export function useMotorStudio() {
       readRobotArmControlParams: robotArmState.readRobotArmControlParams,
       writeRobotArmControlParams: robotArmState.writeRobotArmControlParams,
     }),
-    [robotArmState],
+    [robotArmState]
   );
 
   const logsDomain = useMemo(
@@ -224,7 +232,7 @@ export function useMotorStudio() {
       logs,
       clearLogs,
     }),
-    [stateSnapshot, logs],
+    [stateSnapshot, logs]
   );
 
   const workspace = useMemo(
@@ -232,7 +240,7 @@ export function useMotorStudio() {
       menuOpen,
       setMenuOpen,
     }),
-    [menuOpen],
+    [menuOpen]
   );
 
   return useMemo(
@@ -245,6 +253,6 @@ export function useMotorStudio() {
       logs: logsDomain,
       workspace,
     }),
-    [connection, control, logsDomain, preferences, robotArm, scan, workspace],
+    [connection, control, logsDomain, preferences, robotArm, scan, workspace]
   );
 }

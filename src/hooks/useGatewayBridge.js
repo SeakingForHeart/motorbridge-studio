@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { WsGatewayClient } from '../wsGatewayClient';
 import { useI18n } from '../i18n';
+import { normalizeGatewayCapabilities, WS_V1_FALLBACK_CAPABILITIES } from '../lib/wsCapabilities';
 
 export function useGatewayBridge({ wsUrl, channel, pushLog, setStateSnapshot }) {
   const { t } = useI18n();
@@ -8,6 +9,8 @@ export function useGatewayBridge({ wsUrl, channel, pushLog, setStateSnapshot }) 
   const [connected, setConnected] = useState(false);
   const [targetTransport, setTargetTransport] = useState('auto');
   const [targetSerialPort, setTargetSerialPort] = useState('');
+  const [gatewayCapabilities, setGatewayCapabilities] = useState(WS_V1_FALLBACK_CAPABILITIES);
+  const [capabilitiesSource, setCapabilitiesSource] = useState('fallback');
   const clientRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
@@ -102,6 +105,19 @@ export function useGatewayBridge({ wsUrl, channel, pushLog, setStateSnapshot }) 
           setConnected(true);
           setConnText(t('conn_connected'));
           pushLog(t('log_connected', { url: wsUrl }), 'ok');
+          clientRef.current
+            ?.send('capabilities', {}, 3000)
+            .then((ret) => {
+              if (!ret?.ok) throw new Error(ret?.error || 'capabilities failed');
+              setGatewayCapabilities(normalizeGatewayCapabilities(ret));
+              setCapabilitiesSource('gateway');
+              pushLog(t('log_capabilities_gateway'), 'ok');
+            })
+            .catch((e) => {
+              setGatewayCapabilities(WS_V1_FALLBACK_CAPABILITIES);
+              setCapabilitiesSource('fallback');
+              pushLog(t('log_capabilities_fallback', { err: e.message || e }), 'info');
+            });
         },
         onClose: () => {
           connectingRef.current = false;
@@ -184,6 +200,8 @@ export function useGatewayBridge({ wsUrl, channel, pushLog, setStateSnapshot }) 
     connected,
     targetTransport,
     targetSerialPort,
+    gatewayCapabilities,
+    capabilitiesSource,
     connectWs,
     disconnectWs,
     sendCmd,

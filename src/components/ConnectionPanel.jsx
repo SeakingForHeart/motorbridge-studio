@@ -12,6 +12,7 @@ export function ConnectionPanel() {
     setChannel,
     targetTransport,
     targetSerialPort,
+    capabilitiesSource,
     scanTimeoutMs,
     setScanTimeoutMs,
     connectWs,
@@ -59,7 +60,9 @@ export function ConnectionPanel() {
           <div className="row toolbar">
             <button className="primary strong" onClick={connectWs}>{t('connect')}</button>
             <button onClick={disconnectWs}>{t('disconnect')}</button>
-            <span className="tip">{t('pure_frontend_tip')}</span>
+            <span className="tip">
+              {t('pure_frontend_tip')} · {t('capabilities_source')}: {capabilitiesSource || 'fallback'}
+            </span>
           </div>
         </>
       )}
