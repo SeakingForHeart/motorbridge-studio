@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeControlForHit, normalizeControlValue, normalizeHits } from './utils';
+import {
+  damiaoModelCandidates,
+  normalizeControlForHit,
+  normalizeControlValue,
+  normalizeHits,
+} from './utils';
 
 describe('utils normalizeHits', () => {
+  it('keeps Damiao auto scan focused on the installed 4340 and 4310 motors', () => {
+    expect(damiaoModelCandidates('auto')).toEqual(['4340', '4310']);
+    expect(damiaoModelCandidates('')).toEqual(['4340', '4310']);
+  });
+
   it('uses probe as robstride esc_id when both probe and device_id exist', () => {
     const normalized = normalizeHits(
       'robstride',

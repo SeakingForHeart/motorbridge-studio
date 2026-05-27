@@ -196,7 +196,8 @@ export function useGatewayBridge({
     }
   };
 
-  const setTargetFor = async (vendor, model, motorId, feedbackId) => {
+  const setTargetFor = async (vendor, model, motorId, feedbackId, options = {}) => {
+    const enableStreams = options.enableStreams !== false;
     const ret = await sendCmd(
       'set_target',
       {
@@ -209,6 +210,7 @@ export function useGatewayBridge({
       10000
     );
     if (!ret.ok) throw new Error(ret.error || 'set_target failed');
+    if (!enableStreams) return;
     if (String(vendor) === 'robstride') {
       try {
         await sendCmd(

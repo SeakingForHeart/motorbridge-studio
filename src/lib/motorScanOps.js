@@ -90,6 +90,10 @@ export async function runScanOp({
   };
 
   try {
+    if (typeof closeBusQuietly === 'function') {
+      await closeBusQuietly();
+    }
+
     const allFound = [];
     const phases = [];
 
@@ -143,7 +147,7 @@ export async function runScanOp({
 
         const defaultFid = getVendorScanDefaults(vendor, cfg, startId);
 
-        await setTargetFor(vendor, model, startId, defaultFid);
+        await setTargetFor(vendor, model, startId, defaultFid, { enableStreams: false });
 
         const basePayload = {
           vendor,

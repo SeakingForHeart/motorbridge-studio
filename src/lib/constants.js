@@ -11,8 +11,8 @@ export const VENDOR_LABELS = {
 };
 
 export const DEFAULT_VENDOR_CONFIG = {
-  damiao: { enabled: true, model: 'auto', startId: '0x01', endId: '0x07', feedbackBase: '0x10' },
-  robstride: { enabled: true, model: 'rs-00', startId: '0x01', endId: '0x10', feedbackId: '0xFD,0xFF,0xFE' },
+  damiao: { enabled: true, model: '4340,4310', startId: '0x01', endId: '0x0A', feedbackBase: '0x10' },
+  robstride: { enabled: false, model: 'rs-00', startId: '0x01', endId: '0x10', feedbackId: '0xFD,0xFF,0xFE' },
   myactuator: { enabled: false, model: 'X8', startId: '0x01', endId: '0x10' },
   hightorque: { enabled: false, model: 'hightorque', startId: '0x01', endId: '0x10' },
   hexfellow: { enabled: false, model: 'hexfellow', startId: '0x01', endId: '0x10' },

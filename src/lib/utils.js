@@ -101,10 +101,10 @@ export function isAutoModel(raw) {
 
 export function damiaoModelCandidates(raw) {
   const s = String(raw || '').trim();
-  if (isAutoModel(s)) return ['4310', '4340P', '4340'];
+  if (isAutoModel(s)) return ['4340', '4310'];
   if (s.includes(',')) {
     const arr = s.split(',').map((x) => x.trim()).filter(Boolean);
-    return arr.length ? arr : ['4310', '4340P', '4340'];
+    return arr.length ? arr : ['4340', '4310'];
   }
   return [s];
 }
