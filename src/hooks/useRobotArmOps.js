@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { bulkOp, sleep } from '../lib/async';
-import { DAMIAO_ARM_PARAM_DEFS } from '../lib/appConfig';
+import { DAMIAO_ARM_PARAM_DEFS, ROBSTRIDE_ARM_PARAM_DEFS } from '../lib/appConfig';
 import { modelForHit } from '../lib/motorStudioOps';
+import { toRobstrideCliType } from '../lib/robstrideParamCatalog';
+import { armVendorForProfile } from '../lib/robotArm';
 import { defaultControlsForHit, getResponseValue, motorKey } from '../lib/utils';
 import { useRobotArmStudio } from './useRobotArmStudio';
 
@@ -66,8 +68,10 @@ export function useRobotArmOps({
     }
   };
 
-  const readDefs = DAMIAO_ARM_PARAM_DEFS;
-  const writeDefs = DAMIAO_ARM_PARAM_DEFS.filter((x) => x.writable !== false);
+  const activeParamVendor = armVendorForProfile(robotArmModel);
+  const readDefs =
+    activeParamVendor === 'robstride' ? ROBSTRIDE_ARM_PARAM_DEFS : DAMIAO_ARM_PARAM_DEFS;
+  const writeDefs = readDefs.filter((x) => x.writable !== false);
 
   const readDamiaoControlParams = async (h, timeoutMs = 1000, { closeBusAfter = true } = {}) => {
     if (!h || String(h.vendor) !== 'damiao') {
@@ -119,10 +123,66 @@ export function useRobotArmOps({
     }
   };
 
+  const readRobstrideControlParams = async (h, timeoutMs = 1000, { closeBusAfter = true } = {}) => {
+    if (!h || String(h.vendor) !== 'robstride') {
+      throw new Error('read control params is robstride-only');
+    }
+
+    await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
+    try {
+      const values = {};
+      for (const def of ROBSTRIDE_ARM_PARAM_DEFS) {
+        const type = toRobstrideCliType(def.dataType);
+        const ret = await sendCmd(
+          'robstride_read_param',
+          { param_id: def.paramId, type, timeout_ms: timeoutMs },
+          3000
+        );
+        if (!ret?.ok) throw new Error(`${def.variable}: ${ret?.error || 'read param failed'}`);
+        values[def.key] = Number(getResponseValue(ret) ?? Number.NaN);
+      }
+      return values;
+    } finally {
+      if (closeBusAfter) await closeBusQuietly();
+    }
+  };
+
+  const writeRobstrideControlParams = async (
+    h,
+    values,
+    { store = true, closeBusAfter = true } = {}
+  ) => {
+    if (!h || String(h.vendor) !== 'robstride') {
+      throw new Error('write control params is robstride-only');
+    }
+    await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
+    try {
+      for (const def of ROBSTRIDE_ARM_PARAM_DEFS.filter((x) => x.writable !== false)) {
+        if (!(def.key in values)) continue;
+        const type = toRobstrideCliType(def.dataType);
+        const value = Number(values[def.key]) || 0;
+        const ret = await sendCmd(
+          'robstride_write_param',
+          { param_id: def.paramId, type, value, timeout_ms: 1000 },
+          3000
+        );
+        if (!ret?.ok) throw new Error(ret?.error || `${def.variable} write failed`);
+      }
+
+      if (store) {
+        const stored = await sendCmd('store_parameters', { vendor: h.vendor }, 4000);
+        if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
+      }
+    } finally {
+      if (closeBusAfter) await closeBusQuietly();
+    }
+  };
+
   const readRobotArmControlParams = async ({ onProgress } = {}) => {
-    const rows = robotArmJointRows.filter((x) => String(x.hit?.vendor) === 'damiao');
+    const vendor = activeParamVendor;
+    const rows = robotArmJointRows.filter((x) => String(x.hit?.vendor) === vendor);
     if (rows.length === 0) {
-      pushLog('robot-arm read params skipped: no damiao joints', 'err');
+      pushLog(`robot-arm read params skipped: no ${vendor} joints`, 'err');
       return {};
     }
     onProgress?.({
@@ -137,7 +197,10 @@ export function useRobotArmOps({
       for (let i = 0; i < rows.length; i += 1) {
         const row = rows[i];
         try {
-          const values = await readDamiaoControlParams(row.hit, 1000, { closeBusAfter: false });
+          const values =
+            vendor === 'robstride'
+              ? await readRobstrideControlParams(row.hit, 1000, { closeBusAfter: false })
+              : await readDamiaoControlParams(row.hit, 1000, { closeBusAfter: false });
           result[row.key] = { ok: true, values };
           pushLog(`robot-arm read params ok joint=${row.joint}`, 'ok');
         } catch (e) {
@@ -168,9 +231,10 @@ export function useRobotArmOps({
   };
 
   const writeRobotArmControlParams = async (rowsWithValues = [], { onProgress } = {}) => {
-    const rows = rowsWithValues.filter((x) => x?.hit && String(x.hit.vendor) === 'damiao');
+    const vendor = activeParamVendor;
+    const rows = rowsWithValues.filter((x) => x?.hit && String(x.hit.vendor) === vendor);
     if (rows.length === 0) {
-      pushLog('robot-arm write params skipped: no damiao joints', 'err');
+      pushLog(`robot-arm write params skipped: no ${vendor} joints`, 'err');
       return {};
     }
     onProgress?.({
@@ -192,10 +256,17 @@ export function useRobotArmOps({
               )
               .map((def) => [def.key, row.values[def.key]])
           );
-          await writeDamiaoControlParams(row.hit, writeValues, {
-            store: true,
-            closeBusAfter: false,
-          });
+          if (vendor === 'robstride') {
+            await writeRobstrideControlParams(row.hit, writeValues, {
+              store: true,
+              closeBusAfter: false,
+            });
+          } else {
+            await writeDamiaoControlParams(row.hit, writeValues, {
+              store: true,
+              closeBusAfter: false,
+            });
+          }
           pushLog(`robot-arm write params ok joint=${row.joint}`, 'ok');
           result[row.key] = { ok: true };
         } catch (e) {

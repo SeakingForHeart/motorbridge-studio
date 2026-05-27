@@ -45,6 +45,16 @@ export const REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE = {
   7: { ctrlMode: '2', currentBw: '1000', velKp: '0.0008', velKi: '0.002', posKp: '50', posKi: '1' },
 };
 
+export const REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE = {
+  1: { locKp: '13', spdKp: '12.0', accRad: '12.0', velMax: '50' },
+  2: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
+  3: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
+  4: { locKp: '15', spdKp: '8.0', accRad: '20.0', velMax: '50' },
+  5: { locKp: '18', spdKp: '5.0', accRad: '20.0', velMax: '50' },
+  6: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '50' },
+  7: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '50' },
+};
+
 export const REBOT_ARM_JOINT_LIMITS = {
   1: { min: -2.61, max: 2.61 },
   2: { min: -3.7, max: 0.0 },

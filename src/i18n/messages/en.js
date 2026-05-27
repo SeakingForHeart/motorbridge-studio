@@ -14,7 +14,8 @@ export const en = {
   help_center_title: 'Help Center',
   help_center_intro: 'Core commands, safety checks, and operating flow for this workspace.',
   help_center_setup_title: 'Install & Backend Startup',
-  help_setup_1: 'Install the Python package first; it provides motorbridge-gateway and motorbridge-cli.',
+  help_setup_1:
+    'Install the Python package first; it provides motorbridge-gateway and motorbridge-cli.',
   help_setup_2: 'Start WS Gateway before connecting from this web console.',
   help_setup_3:
     'When you see "ws_gateway listening ...", click Connect in UI (default ws://127.0.0.1:9002).',
@@ -29,8 +30,10 @@ export const en = {
   help_mode_socketcanfd: 'SOCKETCAN-FD transport',
   help_standard_can_restart_cmd: 'Ubuntu SocketCAN setup (optional alias)',
   help_center_dmserial_title: 'Damiao Serial Bridge (dm-serial)',
-  help_dmserial_1: 'dm-serial is Damiao-only. RobStride/MyActuator/Hexfellow are not supported on this transport.',
-  help_dmserial_2: 'Current dm-serial gateway startup does not need model/motor-id/feedback-id; motor IDs are handled by scan and cards in the UI.',
+  help_dmserial_1:
+    'dm-serial is Damiao-only. RobStride/MyActuator/Hexfellow are not supported on this transport.',
+  help_dmserial_2:
+    'Current dm-serial gateway startup does not need model/motor-id/feedback-id; motor IDs are handled by scan and cards in the UI.',
   help_dmserial_3:
     'Serial port names differ by platform: on Linux/macOS check /dev for ttyACM, ttyUSB, tty.usbmodem, or tty.usbserial; on Windows check the newly added COM port in Device Manager.',
   help_dmserial_gateway_cmd: 'dm-serial Gateway Command (Example)',
@@ -90,12 +93,16 @@ export const en = {
   arm_model: 'Arm Model',
   arm_first_use_btn: 'First-time Guide',
   arm_first_use_title: 'First-time Safety Guide',
-  arm_first_use_intro: 'For first power-on, follow these steps to make zero/limit baseline reliable:',
-  arm_first_use_step_1: 'Manually place all 7 joints at a safe initial mechanical posture with no collision risk.',
+  arm_first_use_intro:
+    'For first power-on, follow these steps to make zero/limit baseline reliable:',
+  arm_first_use_step_1:
+    'Manually place all 7 joints at a safe initial mechanical posture with no collision risk.',
   arm_first_use_step_2: 'Click "Scan All Joints" to confirm online status.',
   arm_first_use_step_3: 'Click "Enable All", then "Reset Pose", and wait until joints settle.',
-  arm_first_use_step_4: 'After confirming pose is correct, run "Zero All" (multi-step safety confirmations).',
-  arm_first_use_step_5: 'Then "Read Params" for record; if abnormal later, reset pose before recalibration.',
+  arm_first_use_step_4:
+    'After confirming pose is correct, run "Zero All" (multi-step safety confirmations).',
+  arm_first_use_step_5:
+    'Then "Read Params" for record; if abnormal later, reset pose before recalibration.',
   arm_prepare_cards: 'Prepare 7 Cards',
   arm_scan_all: 'Scan All Joints',
   arm_self_check: 'One-click Self-check',
@@ -111,20 +118,36 @@ export const en = {
   arm_disable_all: 'Disable All',
   arm_zero_all: 'Zero All',
   arm_reset_pose: 'Reset Pose',
-  arm_bulk_busy: 'Bulk operation running: live dragging and per-joint controls are temporarily locked.',
-  arm_zero_all_guard_hint: 'Safety gate: "Zero All" is allowed only when all joints are near zero (use "Reset Pose" first).',
+  arm_bulk_busy:
+    'Bulk operation running: live dragging and per-joint controls are temporarily locked.',
+  arm_zero_all_guard_hint:
+    'Safety gate: "Zero All" is allowed only when all joints are near zero (use "Reset Pose" first).',
   arm_zero_all_blocked: 'Safety check failed. Joints not near zero (±{{eps}}rad): {{joints}}',
   arm_zero_all_force_title: 'Force Zero Confirmation',
-  arm_zero_all_force_hint: 'If the arm is manually placed at mechanical zero, you may continue with FORCE zero. This is high-risk.',
+  arm_zero_all_force_hint:
+    'If the arm is manually placed at mechanical zero, you may continue with FORCE zero. This is high-risk.',
   arm_zero_all_confirm_title: 'Zero All Confirmation',
-  arm_zero_all_confirm_1: 'Dangerous action: this will zero+store ALL joints. Confirm arm is at mechanical zero and area is safe. Continue?',
-  arm_zero_all_confirm_2: 'Second confirmation: this writes zero references and affects limit baseline. Execute "Zero All"?',
+  arm_zero_all_confirm_1:
+    'Dangerous action: this will zero+store ALL joints. Confirm arm is at mechanical zero and area is safe. Continue?',
+  arm_zero_all_confirm_2:
+    'Second confirmation: this writes zero references and affects limit baseline. Execute "Zero All"?',
   arm_read_params: 'Read Params',
   arm_write_params: 'Write Params',
   arm_params_title: 'Joint Control Params',
   arm_params_hint: 'Damiao registers: mode/current-bandwidth/velocity-loop/position-loop',
+  arm_params_hint_robstride: 'RobStride params: loc_kp/spd_kp/acc_rad/vel_max',
   arm_params_read_done: 'Control parameters loaded.',
   arm_params_damiao_only: 'This parameter panel currently supports Damiao only.',
+  arm_params_vendor_unsupported: 'This parameter panel supports Damiao and RobStride arm profiles.',
+  arm_params_read_before_write: 'Read all online joint parameters successfully before write.',
+  arm_params_write_risk_hint:
+    'Risk: writing parameters changes motor behavior and stores them on the device. Confirm the arm is supported, unloaded or safely held, low speed, and E-stop is ready.',
+  arm_params_write_confirm_title: 'Confirm Parameter Write',
+  arm_params_write_confirm_message:
+    'This will write and store control parameters on all online joints.\n\nContinue only after confirming the arm is safe, supported, and E-stop is ready.',
+  arm_params_risky_write_confirm_title: 'Confirm Risky Parameter Write',
+  arm_params_risky_write_confirm_message:
+    'About to write ESC_ID / MST_ID / TIMEOUT / can_br for all loaded joints.\n\nOnly continue if IDs and bus settings are confirmed.',
   arm_params_read_failed: 'Failed to load control parameters',
   arm_params_write_done: 'Control parameters written and stored.',
   arm_params_write_failed: 'Failed to write control parameters',
@@ -147,16 +170,20 @@ export const en = {
   arm_demo_no_online: 'No online joints found. Please scan first.',
   arm_demo_no_joint: 'No joint card available.',
   arm_demo_online_hint: 'Online joints {{online}}/{{total}}. Demo drives online joints only.',
-  arm_demo_beta_warn: 'Note: Demo is still being stabilized. Keep low speed and E-stop ready onsite.',
+  arm_demo_beta_warn:
+    'Note: Demo is still being stabilized. Keep low speed and E-stop ready onsite.',
   arm_live_move_failed: 'Live move failed; target synced back from motor state.',
   arm_params_template_applied: 'Applied reBot Arm Damiao default template (joints 1-6).',
+  arm_params_template_applied_robstride:
+    'Applied reBot Arm RobStride default template (joints 1-7).',
   arm_ctrl_mode: 'Control Mode',
   arm_current_bw: 'Current BW',
   arm_vel_kp: 'Vel KP',
   arm_vel_ki: 'Vel KI',
   arm_pos_kp: 'Pos KP',
   arm_pos_ki: 'Pos KI',
-  arm_limit_blocked: 'Joint {{joint}} out of limit: requested {{req}} rad, limit {{min}}..{{max}} rad, clamped to {{use}} rad',
+  arm_limit_blocked:
+    'Joint {{joint}} out of limit: requested {{req}} rad, limit {{min}}..{{max}} rad, clamped to {{use}} rad',
   arm_online_watch_on: 'Online Watch: ON',
   arm_online_watch_off: 'Online Watch: OFF',
   joint: 'Joint',
@@ -168,9 +195,11 @@ export const en = {
   arm_live_move: 'Live move while dragging',
   arm_live_move_on: 'Live mode ON (drag sends commands)',
   arm_live_move_off: 'Manual mode (click Move to send)',
-  arm_joint7_mit_warn: 'For Joint 7 in MIT mode, start with small gains and low speed; if abnormal, run stop -> clear_error -> enable.',
+  arm_joint7_mit_warn:
+    'For Joint 7 in MIT mode, start with small gains and low speed; if abnormal, run stop -> clear_error -> enable.',
   arm_sim_title: 'URDF Online Simulation',
-  arm_sim_desc: 'Load URDF simulator/web scene here. Later this panel can consume WS state for digital-twin sync.',
+  arm_sim_desc:
+    'Load URDF simulator/web scene here. Later this panel can consume WS state for digital-twin sync.',
   arm_ws_bridge_hint: 'Ready for WS bridge integration',
   arm_sim_mode_current: 'Current mode: {{mode}}',
   arm_sim_mode_direct: 'Direct Pose Mode',
@@ -284,7 +313,8 @@ export const en = {
   target: 'Target',
   general_target_slider: 'Target Angle Slider',
   general_target_slider_tip: 'Drag only updates the target value. Click Move to send the command.',
-  general_target_slider_live_tip: 'Live mode is ON: dragging sends throttled pos_vel/force_pos commands.',
+  general_target_slider_live_tip:
+    'Live mode is ON: dragging sends throttled pos_vel/force_pos commands.',
   general_target_slider_disabled: 'Slider is enabled for position modes only: pos_vel / force_pos.',
   general_live_move: 'Live move while dragging',
   general_live_move_on: 'Live mode ON',
@@ -313,7 +343,8 @@ export const en = {
   advanced_show: 'Show Advanced',
   advanced_hide: 'Hide Advanced',
   advanced_risk_note: 'Advanced section contains low-level writes; changes are risky.',
-  advanced_risk_confirm: 'Advanced operations include high-risk actions (e.g. register write) and may cause fault or unsafe motion. Open anyway?',
+  advanced_risk_confirm:
+    'Advanced operations include high-risk actions (e.g. register write) and may cause fault or unsafe motion. Open anyway?',
   advanced_ops: 'Advanced Ops',
   advanced_ops_desc: 'Full low-level operations (default hidden)',
   request_feedback: 'Request Feedback',
@@ -365,7 +396,8 @@ export const en = {
   confirm_clear_all: 'Clear all motor cards and local cache?',
   confirm_clear_offline: 'Clear {{count}} offline motor card(s)?',
   confirm_delete_card: 'Delete this card?\n{{vendor}} ESC {{esc}} / MST {{mst}}',
-  confirm_set_id: 'Set ID for {{vendor}} ESC {{esc}} / MST {{mst}}? This may change device identity.',
+  confirm_set_id:
+    'Set ID for {{vendor}} ESC {{esc}} / MST {{mst}}? This may change device identity.',
 
   conn_disconnected: 'ws: disconnected',
   conn_connecting: 'ws: connecting...',

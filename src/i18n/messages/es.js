@@ -29,8 +29,10 @@ export const es = {
   help_mode_socketcanfd: 'Transporte SOCKETCAN-FD',
   help_standard_can_restart_cmd: 'Preparación Ubuntu SocketCAN (alias opcional)',
   help_center_dmserial_title: 'Puente Serial Damiao (dm-serial)',
-  help_dmserial_1: 'dm-serial es exclusivo de Damiao. RobStride/MyActuator/Hexfellow no están soportados en este transporte.',
-  help_dmserial_2: 'El gateway dm-serial actual no necesita model/motor-id/feedback-id; los IDs se manejan con escaneo y tarjetas en la UI.',
+  help_dmserial_1:
+    'dm-serial es exclusivo de Damiao. RobStride/MyActuator/Hexfellow no están soportados en este transporte.',
+  help_dmserial_2:
+    'El gateway dm-serial actual no necesita model/motor-id/feedback-id; los IDs se manejan con escaneo y tarjetas en la UI.',
   help_dmserial_3:
     'Los nombres de puerto cambian por plataforma: en Linux/macOS revise /dev para ttyACM, ttyUSB, tty.usbmodem o tty.usbserial; en Windows revise el nuevo puerto COM en el Administrador de dispositivos.',
   help_dmserial_gateway_cmd: 'Comando de Gateway dm-serial (Ejemplo)',
@@ -90,12 +92,17 @@ export const es = {
   arm_model: 'Modelo de brazo',
   arm_first_use_btn: 'Guía Inicial',
   arm_first_use_title: 'Guía de Seguridad Inicial',
-  arm_first_use_intro: 'En el primer uso, siga estos pasos para asegurar una base fiable de cero/límites:',
-  arm_first_use_step_1: 'Coloque manualmente las 7 articulaciones en una postura mecánica segura, sin interferencias.',
+  arm_first_use_intro:
+    'En el primer uso, siga estos pasos para asegurar una base fiable de cero/límites:',
+  arm_first_use_step_1:
+    'Coloque manualmente las 7 articulaciones en una postura mecánica segura, sin interferencias.',
   arm_first_use_step_2: 'Pulse "Escanear todas" para confirmar estado en línea.',
-  arm_first_use_step_3: 'Pulse "Habilitar todas", luego "Volver a cero mecánico", y espere estabilización.',
-  arm_first_use_step_4: 'Tras confirmar postura correcta, ejecute "Calibrar cero todas" (con confirmaciones).',
-  arm_first_use_step_5: 'Después, use "Leer parámetros" para registrar; si hay anomalías, vuelva a cero y recalibre.',
+  arm_first_use_step_3:
+    'Pulse "Habilitar todas", luego "Volver a cero mecánico", y espere estabilización.',
+  arm_first_use_step_4:
+    'Tras confirmar postura correcta, ejecute "Calibrar cero todas" (con confirmaciones).',
+  arm_first_use_step_5:
+    'Después, use "Leer parámetros" para registrar; si hay anomalías, vuelva a cero y recalibre.',
   arm_prepare_cards: 'Preparar 7 tarjetas',
   arm_scan_all: 'Escanear todas',
   arm_self_check: 'Autochequeo',
@@ -111,20 +118,38 @@ export const es = {
   arm_disable_all: 'Deshabilitar todas',
   arm_zero_all: 'Calibrar cero todas',
   arm_reset_pose: 'Volver a cero mecánico',
-  arm_bulk_busy: 'Operación por lotes en curso: arrastre en vivo y control por articulación bloqueados temporalmente.',
-  arm_zero_all_guard_hint: 'Puerta de seguridad: "Calibrar cero todas" solo se permite cuando todas las articulaciones están cerca de cero (use "Volver a cero mecánico").',
-  arm_zero_all_blocked: 'Fallo de seguridad. Articulaciones fuera de cero (±{{eps}}rad): {{joints}}',
+  arm_bulk_busy:
+    'Operación por lotes en curso: arrastre en vivo y control por articulación bloqueados temporalmente.',
+  arm_zero_all_guard_hint:
+    'Puerta de seguridad: "Calibrar cero todas" solo se permite cuando todas las articulaciones están cerca de cero (use "Volver a cero mecánico").',
+  arm_zero_all_blocked:
+    'Fallo de seguridad. Articulaciones fuera de cero (±{{eps}}rad): {{joints}}',
   arm_zero_all_force_title: 'Confirmación de Cero Forzado',
-  arm_zero_all_force_hint: 'Si el brazo está colocado manualmente en cero mecánico, puede continuar con calibración FORZADA. Es una operación de alto riesgo.',
+  arm_zero_all_force_hint:
+    'Si el brazo está colocado manualmente en cero mecánico, puede continuar con calibración FORZADA. Es una operación de alto riesgo.',
   arm_zero_all_confirm_title: 'Confirmación de Cero Total',
-  arm_zero_all_confirm_1: 'Acción peligrosa: esto hará cero+guardar en TODAS las articulaciones. Confirme posición cero mecánica y zona segura. ¿Continuar?',
-  arm_zero_all_confirm_2: 'Segunda confirmación: esto escribe referencias de cero y afecta el límite base. ¿Ejecutar "Calibrar cero todas"?',
+  arm_zero_all_confirm_1:
+    'Acción peligrosa: esto hará cero+guardar en TODAS las articulaciones. Confirme posición cero mecánica y zona segura. ¿Continuar?',
+  arm_zero_all_confirm_2:
+    'Segunda confirmación: esto escribe referencias de cero y afecta el límite base. ¿Ejecutar "Calibrar cero todas"?',
   arm_read_params: 'Leer parámetros',
   arm_write_params: 'Escribir parámetros',
   arm_params_title: 'Parámetros de control',
-  arm_params_hint: 'Registros Damiao: modo/ancho de banda de corriente/lazos de velocidad y posición',
+  arm_params_hint:
+    'Registros Damiao: modo/ancho de banda de corriente/lazos de velocidad y posición',
+  arm_params_hint_robstride: 'Parámetros RobStride: loc_kp/spd_kp/acc_rad/vel_max',
   arm_params_read_done: 'Parámetros cargados.',
   arm_params_damiao_only: 'Este panel de parámetros actualmente solo soporta Damiao.',
+  arm_params_vendor_unsupported: 'Este panel soporta perfiles de brazo Damiao y RobStride.',
+  arm_params_read_before_write: 'Lea correctamente todos los parámetros online antes de escribir.',
+  arm_params_write_risk_hint:
+    'Riesgo: escribir parámetros cambia el comportamiento del motor y los guarda en el dispositivo. Confirme brazo soportado, sujeción segura, baja velocidad y parada de emergencia lista.',
+  arm_params_write_confirm_title: 'Confirmar escritura de parámetros',
+  arm_params_write_confirm_message:
+    'Esto escribirá y guardará parámetros de control en todas las articulaciones online.\n\nContinúe solo tras confirmar seguridad, modelo soportado y parada de emergencia lista.',
+  arm_params_risky_write_confirm_title: 'Confirmar escritura de alto riesgo',
+  arm_params_risky_write_confirm_message:
+    'Se escribirán ESC_ID / MST_ID / TIMEOUT / can_br en todas las articulaciones cargadas.\n\nContinúe solo si IDs y bus están confirmados.',
   arm_params_read_failed: 'Error al leer parámetros',
   arm_params_write_done: 'Parámetros escritos y guardados.',
   arm_params_write_failed: 'Error al escribir parámetros',
@@ -146,17 +171,24 @@ export const es = {
   arm_demo_scan: 'Escaneando y preparando articulaciones online...',
   arm_demo_no_online: 'No hay articulaciones online. Escanee primero.',
   arm_demo_no_joint: 'No hay tarjetas de articulación disponibles.',
-  arm_demo_online_hint: 'Articulaciones online {{online}}/{{total}}. Demo solo mueve articulaciones online.',
-  arm_demo_beta_warn: 'Nota: Demo sigue en estabilización. Mantenga baja velocidad y parada de emergencia lista.',
-  arm_live_move_failed: 'Falló el movimiento en vivo; objetivo sincronizado desde el estado del motor.',
-  arm_params_template_applied: 'Plantilla por defecto de reBot Arm Damiao aplicada (articulaciones 1-6).',
+  arm_demo_online_hint:
+    'Articulaciones online {{online}}/{{total}}. Demo solo mueve articulaciones online.',
+  arm_demo_beta_warn:
+    'Nota: Demo sigue en estabilización. Mantenga baja velocidad y parada de emergencia lista.',
+  arm_live_move_failed:
+    'Falló el movimiento en vivo; objetivo sincronizado desde el estado del motor.',
+  arm_params_template_applied:
+    'Plantilla por defecto de reBot Arm Damiao aplicada (articulaciones 1-6).',
+  arm_params_template_applied_robstride:
+    'Plantilla por defecto de reBot Arm RobStride aplicada (articulaciones 1-7).',
   arm_ctrl_mode: 'Modo de control',
   arm_current_bw: 'BW corriente',
   arm_vel_kp: 'Vel KP',
   arm_vel_ki: 'Vel KI',
   arm_pos_kp: 'Pos KP',
   arm_pos_ki: 'Pos KI',
-  arm_limit_blocked: 'Articulación {{joint}} fuera de límite: pedido {{req}} rad, límite {{min}}..{{max}} rad, ajustado a {{use}} rad',
+  arm_limit_blocked:
+    'Articulación {{joint}} fuera de límite: pedido {{req}} rad, límite {{min}}..{{max}} rad, ajustado a {{use}} rad',
   arm_online_watch_on: 'Supervisión online: ON',
   arm_online_watch_off: 'Supervisión online: OFF',
   joint: 'Articulación',
@@ -168,9 +200,11 @@ export const es = {
   arm_live_move: 'Mover en vivo al arrastrar',
   arm_live_move_on: 'Modo en vivo ACTIVADO (arrastre envía)',
   arm_live_move_off: 'Modo manual (clic en Mover para enviar)',
-  arm_joint7_mit_warn: 'Para Articulación 7 en modo MIT, usa ganancias bajas y velocidad baja; si hay anomalía ejecuta stop -> clear_error -> enable.',
+  arm_joint7_mit_warn:
+    'Para Articulación 7 en modo MIT, usa ganancias bajas y velocidad baja; si hay anomalía ejecuta stop -> clear_error -> enable.',
   arm_sim_title: 'Simulación URDF en línea',
-  arm_sim_desc: 'Carga aquí el simulador/escena URDF. Más adelante este panel puede consumir estado WS para gemelo digital.',
+  arm_sim_desc:
+    'Carga aquí el simulador/escena URDF. Más adelante este panel puede consumir estado WS para gemelo digital.',
   arm_ws_bridge_hint: 'Listo para integración WS',
   arm_sim_mode_current: 'Modo actual: {{mode}}',
   arm_sim_mode_direct: 'Modo de Pose Directa',
@@ -284,8 +318,10 @@ export const es = {
   target: 'Objetivo',
   general_target_slider: 'Slider de ángulo objetivo',
   general_target_slider_tip: 'Arrastrar solo cambia el objetivo. Pulsa Mover para enviar.',
-  general_target_slider_live_tip: 'Modo en vivo ACTIVADO: arrastrar envía comandos pos_vel/force_pos con throttle.',
-  general_target_slider_disabled: 'El slider solo se habilita en modos de posición: pos_vel / force_pos.',
+  general_target_slider_live_tip:
+    'Modo en vivo ACTIVADO: arrastrar envía comandos pos_vel/force_pos con throttle.',
+  general_target_slider_disabled:
+    'El slider solo se habilita en modos de posición: pos_vel / force_pos.',
   general_live_move: 'Mover en vivo al arrastrar',
   general_live_move_on: 'Modo en vivo ON',
   general_live_move_off: 'Modo manual',
@@ -312,8 +348,10 @@ export const es = {
   t_rotor: 'T_Rotor(°C)',
   advanced_show: 'Mostrar avanzado',
   advanced_hide: 'Ocultar avanzado',
-  advanced_risk_note: 'La sección avanzada incluye escritura de bajo nivel; modificar aquí tiene riesgo.',
-  advanced_risk_confirm: 'Las operaciones avanzadas incluyen acciones de alto riesgo (por ejemplo, escribir registros) y pueden causar fallo o movimiento inseguro. ¿Abrir de todos modos?',
+  advanced_risk_note:
+    'La sección avanzada incluye escritura de bajo nivel; modificar aquí tiene riesgo.',
+  advanced_risk_confirm:
+    'Las operaciones avanzadas incluyen acciones de alto riesgo (por ejemplo, escribir registros) y pueden causar fallo o movimiento inseguro. ¿Abrir de todos modos?',
   advanced_ops: 'Operaciones avanzadas',
   advanced_ops_desc: 'Operaciones completas de bajo nivel (ocultas por defecto)',
   request_feedback: 'Solicitar feedback',
@@ -365,7 +403,8 @@ export const es = {
   confirm_clear_all: '¿Limpiar todas las tarjetas y la caché local?',
   confirm_clear_offline: '¿Limpiar {{count}} tarjeta(s) de motor offline?',
   confirm_delete_card: '¿Eliminar esta tarjeta?\n{{vendor}} ESC {{esc}} / MST {{mst}}',
-  confirm_set_id: '¿Cambiar ID para {{vendor}} ESC {{esc}} / MST {{mst}}? Esto cambia la identidad del dispositivo.',
+  confirm_set_id:
+    '¿Cambiar ID para {{vendor}} ESC {{esc}} / MST {{mst}}? Esto cambia la identidad del dispositivo.',
 
   conn_disconnected: 'ws: desconectado',
   conn_connecting: 'ws: conectando...',

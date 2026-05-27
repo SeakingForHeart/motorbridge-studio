@@ -364,6 +364,61 @@ export const DAMIAO_CTRL_PARAM_RID = Object.freeze(
   Object.fromEntries(DAMIAO_ARM_PARAM_DEFS.slice(0, 6).map((item) => [item.key, item.rid]))
 );
 
+export const ROBSTRIDE_ARM_PARAM_DEFS = [
+  {
+    key: 'locKp',
+    paramId: 0x701e,
+    rid: '0x701E',
+    variable: 'loc_kp',
+    label: 'loc_kp',
+    dataType: 'f32',
+    range: '[0.0, 3.4E38]',
+    writable: true,
+    common: true,
+    group: 'core',
+    defaultValue: '',
+  },
+  {
+    key: 'spdKp',
+    paramId: 0x701f,
+    rid: '0x701F',
+    variable: 'spd_kp',
+    label: 'spd_kp',
+    dataType: 'f32',
+    range: '[0.0, 3.4E38]',
+    writable: true,
+    common: true,
+    group: 'core',
+    defaultValue: '',
+  },
+  {
+    key: 'accRad',
+    paramId: 0x7022,
+    rid: '0x7022',
+    variable: 'acc_rad',
+    label: 'acc_rad',
+    dataType: 'f32',
+    range: '(0.0, 3.4E38]',
+    writable: true,
+    common: true,
+    group: 'limits',
+    defaultValue: '',
+  },
+  {
+    key: 'velMax',
+    paramId: 0x7024,
+    rid: '0x7024',
+    variable: 'vel_max',
+    label: 'vel_max',
+    dataType: 'f32',
+    range: '(0.0, 3.4E38]',
+    writable: true,
+    common: true,
+    group: 'limits',
+    defaultValue: '',
+  },
+];
+
 export const DAMIAO_RW_REGISTER_DEFS = [
   { rid: 0, variable: 'UV_Value', dataType: 'f32', range: '(10.0, 3.4E38]', common: true },
   { rid: 1, variable: 'KT_Value', dataType: 'f32', range: '[0.0, 3.4E38]', common: false },

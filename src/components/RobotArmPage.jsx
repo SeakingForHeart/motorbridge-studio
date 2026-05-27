@@ -122,21 +122,21 @@ function RobotArmToolbar({
         <button
           disabled={!canAction || armToolbarBusy || !paramSupported}
           onClick={readParams}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_read_params')}
         </button>
         <button
           disabled={!canAction || armToolbarBusy || !paramPanelOpen || !paramSupported}
           onClick={writeParams}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_write_params')}
         </button>
         <button
           disabled={!canAction || armToolbarBusy || !paramSupported}
           onClick={applyDefaultTemplate}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_apply_default_template')}
         </button>

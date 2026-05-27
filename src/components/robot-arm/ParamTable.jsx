@@ -53,6 +53,7 @@ export function ParamTable({
   paramDefs,
   canWriteParams,
   paramSupported,
+  paramVendor,
   patchParam,
   readParams,
   writeParams,
@@ -66,13 +67,15 @@ export function ParamTable({
     <div className="armParamPanel">
       <div className="sectionTitle armPaneTitle">
         <h2>{t('arm_params_title')}</h2>
-        <span className="tip">{t('arm_params_hint')}</span>
+        <span className="tip">
+          {t(paramVendor === 'robstride' ? 'arm_params_hint_robstride' : 'arm_params_hint')}
+        </span>
       </div>
       <div className="row toolbar compactToolbar">
         <button
           disabled={!canAction || armToolbarBusy || !paramSupported}
           onClick={readParams}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_read_params')}
         </button>
@@ -80,14 +83,14 @@ export function ParamTable({
           className="primary"
           disabled={!canAction || armToolbarBusy || !canWriteParams || !paramSupported}
           onClick={writeParams}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_write_params')}
         </button>
         <button
           disabled={!canAction || armToolbarBusy || !paramSupported}
           onClick={applyDefaultTemplate}
-          title={paramSupported ? '' : t('arm_params_damiao_only')}
+          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
         >
           {t('arm_apply_default_template')}
         </button>
@@ -95,11 +98,10 @@ export function ParamTable({
           {t('close')}
         </button>
       </div>
-      {!paramSupported && <div className="tip">{t('arm_params_damiao_only')}</div>}
+      {paramSupported && <div className="tip warnText">{t('arm_params_write_risk_hint')}</div>}
+      {!paramSupported && <div className="tip">{t('arm_params_vendor_unsupported')}</div>}
       {paramSupported && !canWriteParams && (
-        <div className="tip">
-          Read all online Damiao joint parameters successfully before write.
-        </div>
+        <div className="tip">{t('arm_params_read_before_write')}</div>
       )}
       {paramInfo && <div className="tip">{paramInfo}</div>}
       <ProgressBar active={paramBusy || paramProgress?.active} progress={paramProgress} />
