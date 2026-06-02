@@ -46,16 +46,16 @@ export const REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE = {
 };
 
 export const REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE = {
-  1: { locKp: '13', spdKp: '12.0', accRad: '12.0', velMax: '50' },
+  1: { locKp: '13', spdKp: '12.0', accRad: '12.0', velMax: '1' },
   2: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
   3: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
-  4: { locKp: '15', spdKp: '8.0', accRad: '20.0', velMax: '50' },
-  5: { locKp: '18', spdKp: '5.0', accRad: '20.0', velMax: '50' },
-  6: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '50' },
-  7: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '50' },
+  4: { locKp: '15', spdKp: '8.0', accRad: '20.0', velMax: '1' },
+  5: { locKp: '18', spdKp: '5.0', accRad: '20.0', velMax: '1' },
+  6: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
+  7: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
 };
 
-export const REBOT_ARM_JOINT_LIMITS = {
+export const REBOT_ARM_DAMIAO_JOINT_LIMITS = {
   1: { min: -2.61, max: 2.61 },
   2: { min: -3.7, max: 0.0 },
   3: { min: -3.7, max: 0.0 },
@@ -64,6 +64,27 @@ export const REBOT_ARM_JOINT_LIMITS = {
   6: { min: -1.57, max: 1.57 },
   7: { min: -5.7, max: 0.0 },
 };
+
+export const REBOT_ARM_ROBSTRIDE_JOINT_LIMITS = {
+  // Converted from provided degree limits:
+  // shoulder_pan(-145,145), shoulder_lift(0,170), elbow_flex(0,200),
+  // wrist_flex(-80,90), wrist_yaw(-90,90), wrist_roll(-90,90), gripper(0,270)
+  1: { min: -2.53, max: 2.53 },
+  2: { min: 0.0, max: 2.96 },
+  3: { min: 0.0, max: 3.5},
+  4: { min: -1.39, max: 1.57 },
+  5: { min: -1.57, max: 1.57 },
+  6: { min: -1.57, max: 1.57 },
+  7: { min: 0.0, max: 4.71 },
+};
+
+const PROFILE_JOINT_LIMITS = {
+  'rebot-arm-damiao': REBOT_ARM_DAMIAO_JOINT_LIMITS,
+  'rebot-arm-robstride': REBOT_ARM_ROBSTRIDE_JOINT_LIMITS,
+};
+
+// Backward compatibility for existing callers that still import one shared limit map.
+export const REBOT_ARM_JOINT_LIMITS = REBOT_ARM_DAMIAO_JOINT_LIMITS;
 
 export const ZERO_SAFE_EPS_RAD = 0.08;
 
@@ -83,6 +104,11 @@ export function armVendorForProfile(armModel) {
 export function armMotorModelForProfile(armModel) {
   const key = normalizeRobotArmModel(armModel);
   return PROFILE_DEFAULT_MODEL[key] || '4310';
+}
+
+export function jointLimitsForProfile(armModel) {
+  const key = normalizeRobotArmModel(armModel);
+  return PROFILE_JOINT_LIMITS[key] || REBOT_ARM_DAMIAO_JOINT_LIMITS;
 }
 
 export function defaultFeedbackIdForProfile(armModel, escId) {

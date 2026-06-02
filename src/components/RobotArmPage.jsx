@@ -1,6 +1,6 @@
 import React from 'react';
 import { useI18n } from '../i18n';
-import { REBOT_ARM_JOINT_LIMITS, ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD } from '../lib/robotArm';
+import { ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD, jointLimitsForProfile } from '../lib/robotArm';
 import { parseNum } from '../lib/utils';
 import { ArmUrdfViewer } from './ArmUrdfViewer';
 import { ProgressBar } from './ProgressBar';
@@ -411,6 +411,7 @@ export function RobotArmPage() {
   const [gripperOpening, setGripperOpening] = React.useState(0);
   const rowsRef = React.useRef(robotArmJointRows);
   const controlSyncSignatureRef = React.useRef('');
+  const jointLimits = React.useMemo(() => jointLimitsForProfile(robotArmModel), [robotArmModel]);
 
   React.useEffect(() => {
     rowsRef.current = robotArmJointRows;
@@ -421,7 +422,7 @@ export function RobotArmPage() {
     const syncSignature = `${robotArmModel}:${robotArmJointRows.map((row) => row.key).join('|')}`;
     if (controlSyncSignatureRef.current === syncSignature) return;
     robotArmJointRows.forEach((row) => {
-      const lim = REBOT_ARM_JOINT_LIMITS[Number(row.joint)] || { min: -3.14, max: 3.14 };
+      const lim = jointLimits[Number(row.joint)] || { min: -3.14, max: 3.14 };
       const rawPos = Number(row?.hit?.pos);
       const synced = row?.hit?.online && Number.isFinite(rawPos) ? clampByLimit(rawPos, lim) : 0;
       patchControl(row.key, {
@@ -434,7 +435,7 @@ export function RobotArmPage() {
       });
     });
     controlSyncSignatureRef.current = syncSignature;
-  }, [robotArmJointRows, patchControl, robotArmModel]);
+  }, [jointLimits, robotArmJointRows, patchControl, robotArmModel]);
 
   React.useEffect(() => {
     if (robotArmJointRows.length === 0) return;
@@ -490,7 +491,7 @@ export function RobotArmPage() {
           zeroAllRobotArm={zeroAllRobotArm}
           setLimitWarn={setLimitWarn}
           showLimitToast={showLimitToast}
-          limits={REBOT_ARM_JOINT_LIMITS}
+          limits={jointLimits}
         >
           {(zero) => (
             <TrailManager>
@@ -503,7 +504,7 @@ export function RobotArmPage() {
                   enableAllRobotArm={enableAllRobotArm}
                   patchControl={patchControl}
                   controlMotor={controlMotor}
-                  limits={REBOT_ARM_JOINT_LIMITS}
+                  limits={jointLimits}
                 >
                   {(sequence) => {
                     const armToolbarBusy =
@@ -628,7 +629,7 @@ export function RobotArmPage() {
                                   patchControl={patchControl}
                                   setLimitWarn={setLimitWarn}
                                   showLimitToast={showLimitToast}
-                                  limits={REBOT_ARM_JOINT_LIMITS}
+                                  limits={jointLimits}
                                 >
                                   {(live) => (
                                     <div className="armRightPane">
