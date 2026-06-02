@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motorKey, normalizeControlForHit, ts } from '../lib/utils';
-import { mapParamStreamToHit, mapResponseToHit } from '../lib/motorStudioOps';
+import { mergeHitsByVendor, motorKey, normalizeControlForHit, ts } from '../lib/utils';
+import { mapParamStreamToHit, mapResponseToHit, modelForHit } from '../lib/motorStudioOps';
 import { usePersistedState } from './usePersistedState';
 import { useI18n } from '../i18n';
 import { useConnectionState } from './useConnectionState';
@@ -62,12 +62,16 @@ export function useMotorStudio() {
   const pushLog = (msg, level = 'info') => {
     setLogs((prev) => [...prev, { t: ts(), msg, level }].slice(-500));
   };
+  const pushLogRef = useRef(pushLog);
+  pushLogRef.current = pushLog;
 
   const handleGatewayState = useCallback(
     (state) => {
       setHits((prev) => {
-        if (!activeMotorKey) return prev;
-        const index = prev.findIndex((h) => motorKey(h) === activeMotorKey);
+        let index = prev.findIndex((h) => streamFrameMatchesHit(state, h));
+        if (index < 0 && activeMotorKey) {
+          index = prev.findIndex((h) => motorKey(h) === activeMotorKey);
+        }
         if (index < 0) return prev;
         const current = prev[index];
         if (state?.vendor && String(state.vendor) !== String(current.vendor)) return prev;
@@ -154,6 +158,110 @@ export function useMotorStudio() {
     sendCmd: connectionState.sendCmd,
     closeBusQuietly: connectionState.closeBusQuietly,
   });
+
+  const damiaoArmTelemetryUnsupportedRef = useRef(false);
+  const damiaoArmTelemetryItems = useMemo(
+    () =>
+      robotArmState.robotArmJointRows
+        .filter((row) => String(row.hit?.vendor) === 'damiao' && row.hit?.online !== false)
+        .map((row) => ({
+          motor_id: Number(row.hit.esc_id),
+          feedback_id: Number(row.hit.mst_id),
+          model: modelForHit(row.hit, scanState.vendors),
+        }))
+        .filter((x) => Number.isFinite(x.motor_id) && Number.isFinite(x.feedback_id)),
+    [robotArmState.robotArmJointRows, scanState.vendors]
+  );
+  const damiaoArmTelemetryItemsRef = useRef([]);
+  damiaoArmTelemetryItemsRef.current = damiaoArmTelemetryItems;
+  const damiaoArmTelemetrySignature = useMemo(
+    () =>
+      damiaoArmTelemetryItems
+        .map((x) => `${x.motor_id}:${x.feedback_id}:${x.model}`)
+        .join('|'),
+    [damiaoArmTelemetryItems]
+  );
+  const gatewayConnected = connectionState.connected;
+  const sendGatewayCmd = connectionState.sendCmd;
+  const damiaoArmTelemetryPaused =
+    scanState.scanBusy || robotArmState.armBulkBusy || robotArmState.armSelfCheckBusy;
+
+  useEffect(() => {
+    damiaoArmTelemetryUnsupportedRef.current = false;
+  }, [damiaoArmTelemetrySignature, gatewayConnected]);
+
+  useEffect(() => {
+    if (
+      !gatewayConnected ||
+      !damiaoArmTelemetrySignature ||
+      damiaoArmTelemetryPaused ||
+      damiaoArmTelemetryUnsupportedRef.current
+    ) {
+      return undefined;
+    }
+    let cancelled = false;
+    let running = false;
+
+    const tick = async () => {
+      if (cancelled || running || damiaoArmTelemetryUnsupportedRef.current) return;
+      running = true;
+      try {
+        const ret = await sendGatewayCmd(
+          'damiao_state_many',
+          {
+            vendor: 'damiao',
+            items: damiaoArmTelemetryItemsRef.current.map(({ motor_id, feedback_id, model }) => ({
+              motor_id,
+              feedback_id,
+              model,
+            })),
+            timeout_ms: 80,
+          },
+          5000
+        );
+        if (cancelled) return;
+        if (!ret?.ok) {
+          const err = ret?.error || 'damiao_state_many failed';
+          if (String(err).includes('unsupported op')) {
+            damiaoArmTelemetryUnsupportedRef.current = true;
+            pushLogRef.current?.('damiao arm telemetry unavailable in current gateway', 'info');
+          } else {
+            pushLogRef.current?.(`damiao arm telemetry failed: ${err}`, 'err');
+          }
+          return;
+        }
+        const states = Array.isArray(ret?.data?.states) ? ret.data.states : [];
+        if (states.length === 0) return;
+        setHits((prev) => {
+          const patches = [];
+          for (const state of states) {
+            if (!state?.has_value) continue;
+            const hit = prev.find((h) => streamFrameMatchesHit(state, h));
+            if (!hit) continue;
+            patches.push(mapResponseToHit(hit, state));
+          }
+          return patches.length > 0 ? mergeHitsByVendor(prev, patches) : prev;
+        });
+      } catch (e) {
+        pushLogRef.current?.(`damiao arm telemetry failed: ${e.message || e}`, 'err');
+      } finally {
+        running = false;
+      }
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 700);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [
+    damiaoArmTelemetryPaused,
+    damiaoArmTelemetrySignature,
+    gatewayConnected,
+    sendGatewayCmd,
+    setHits,
+  ]);
 
   useEffect(() => {
     setArmBulkBusyForControl(robotArmState.armBulkBusy);
