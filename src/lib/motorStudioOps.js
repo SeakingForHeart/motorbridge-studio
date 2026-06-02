@@ -11,7 +11,7 @@ import {
 import { SET_ID_VENDORS } from './constants';
 import { CMD_TIMEOUTS, DAMIAO_REGISTER_SNAPSHOT_FIELDS, DAMIAO_RW_REGISTER_DEFS } from './appConfig';
 import { buildProbePayload, buildSetIdPayload } from './vendors';
-import { REBOT_ARM_JOINT_LIMITS } from './robotArm';
+import { jointLimitsForProfile } from './robotArm';
 
 const lastMitSentAtByMotor = new Map();
 const CONTROL_FIELD_LABELS = Object.freeze({
@@ -208,7 +208,8 @@ function clampMitForSafety(h, mode, target, kp, kd, tau) {
   let safeTau = tau;
 
   const joint = Number(h?.joint);
-  const lim = REBOT_ARM_JOINT_LIMITS[joint];
+  const profile = String(h?.arm_profile || h?.vendor || '');
+  const lim = jointLimitsForProfile(profile)[joint];
   if (lim && Number.isFinite(lim.min) && Number.isFinite(lim.max)) {
     const clipped = clamp(safeTarget, lim.min, lim.max);
     if (Math.abs(clipped - safeTarget) > 1e-9) {
