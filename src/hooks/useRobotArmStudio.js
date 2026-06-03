@@ -4,7 +4,9 @@ import { sleep } from '../lib/async';
 import {
   ROBOT_ARM_JOINTS,
   ROBOT_ARM_MODELS,
+  ROBSTRIDE_FEEDBACK_IDS,
   armMotorModelForProfile,
+  armVendorForProfile,
   buildRobotArmHit,
   isProfileJointHit,
   normalizeRobotArmModel,
@@ -110,7 +112,16 @@ export function useRobotArmStudio({
   const scanRobotArmJoint = async (jointNumber) => {
     const row = robotArmJointRows.find((x) => x.joint === jointNumber);
     if (!row) return false;
-    return probeMotor(row.hit, { fastProbe: true });
+    const vendor = armVendorForProfile(robotArmModel);
+    const options =
+      vendor === 'robstride'
+        ? {
+            fastProbe: true,
+            acceptAnyFeedbackId: true,
+            feedbackIds: [row.hit.mst_id, ...ROBSTRIDE_FEEDBACK_IDS],
+          }
+        : { fastProbe: true };
+    return probeMotor(row.hit, options);
   };
 
   const scanRobotArmAll = async () => {
@@ -136,7 +147,17 @@ export function useRobotArmStudio({
       for (let i = 0; i < ROBOT_ARM_JOINTS.length; i += 1) {
         const j = ROBOT_ARM_JOINTS[i];
         const step = i + 1;
-        const hit = buildRobotArmHit(j, profile);
+        const row = robotArmJointRows.find((x) => x.joint === j.joint);
+        const hit = row?.hit || buildRobotArmHit(j, profile);
+        const vendor = armVendorForProfile(profile);
+        const probeOptions =
+          vendor === 'robstride'
+            ? {
+                fastProbe: true,
+                acceptAnyFeedbackId: true,
+                feedbackIds: [hit.mst_id, ...ROBSTRIDE_FEEDBACK_IDS],
+              }
+            : { fastProbe: true };
 
         let tick = 0;
         const basePercent = Math.floor((i / ROBOT_ARM_JOINTS.length) * 100);
@@ -152,7 +173,7 @@ export function useRobotArmStudio({
           });
         }, 120);
 
-        const ok = await probeMotor(hit, { fastProbe: true });
+        const ok = await probeMotor(hit, probeOptions);
         if (ok) onlineCount += 1;
         clearInterval(progressTimer);
 

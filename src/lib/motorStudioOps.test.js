@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { invalidControlFields, mapParamStreamToHit, mapResponseToHit } from './motorStudioOps';
+import {
+  invalidControlFields,
+  mapParamStreamToHit,
+  mapResponseToHit,
+  probeHitMatchesTarget,
+} from './motorStudioOps';
 
 describe('motor studio ops', () => {
   it('unwraps gateway state_once payloads before merging RobStride telemetry', () => {
@@ -99,5 +104,28 @@ describe('motor studio ops', () => {
     );
 
     expect(invalid).toEqual(['target', 'kp', 'kd']);
+  });
+
+  it('keeps RobStride probe hits scoped to the requested feedback id by default', () => {
+    const target = { vendor: 'robstride', esc_id: 6, mst_id: 0xfd };
+
+    expect(probeHitMatchesTarget({ esc_id: 6, mst_id: 0xfd }, target)).toBe(true);
+    expect(probeHitMatchesTarget({ esc_id: 6, mst_id: 0xff }, target)).toBe(false);
+    expect(probeHitMatchesTarget({ esc_id: 7, mst_id: 0xfd }, target)).toBe(false);
+  });
+
+  it('allows robot-arm RobStride probes to accept alternate host ids for the same device', () => {
+    const target = { vendor: 'robstride', esc_id: 6, mst_id: 0xfd };
+
+    expect(
+      probeHitMatchesTarget({ esc_id: 6, mst_id: 0xff }, target, {
+        acceptAnyFeedbackId: true,
+      })
+    ).toBe(true);
+    expect(
+      probeHitMatchesTarget({ esc_id: 7, mst_id: 0xff }, target, {
+        acceptAnyFeedbackId: true,
+      })
+    ).toBe(false);
   });
 });

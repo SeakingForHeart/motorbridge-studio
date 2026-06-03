@@ -9,7 +9,11 @@ import {
   toHex,
 } from './utils';
 import { SET_ID_VENDORS } from './constants';
-import { CMD_TIMEOUTS, DAMIAO_REGISTER_SNAPSHOT_FIELDS, DAMIAO_RW_REGISTER_DEFS } from './appConfig';
+import {
+  CMD_TIMEOUTS,
+  DAMIAO_REGISTER_SNAPSHOT_FIELDS,
+  DAMIAO_RW_REGISTER_DEFS,
+} from './appConfig';
 import { buildProbePayload, buildSetIdPayload } from './vendors';
 import { jointLimitsForProfile } from './robotArm';
 
@@ -29,7 +33,7 @@ const DAMIAO_REFRESH_REGISTERS = Object.freeze(
     rid: def.rid,
     key: DAMIAO_REGISTER_SNAPSHOT_FIELDS[def.rid],
     dataType: def.dataType,
-  })),
+  }))
 );
 
 function clamp(value, min, max) {
@@ -62,6 +66,13 @@ function blockInvalidControl(pushLog, prefix, control, fields) {
   const names = invalid.map((field) => CONTROL_FIELD_LABELS[field] || field).join(', ');
   pushLog(`${prefix} blocked: fill valid numeric value(s) for ${names}`, 'err');
   return true;
+}
+
+export function probeHitMatchesTarget(candidate, target, { acceptAnyFeedbackId = false } = {}) {
+  if (!candidate || !target) return false;
+  if (Number(candidate.esc_id) !== Number(target.esc_id)) return false;
+  if (acceptAnyFeedbackId && String(target.vendor) === 'robstride') return true;
+  return Number(candidate.mst_id) === Number(target.mst_id);
 }
 
 export function modelForHit(h, vendors) {
@@ -173,7 +184,7 @@ async function readRobstrideStateParams(sendCmd) {
       const ret = await sendCmd(
         'robstride_read_param',
         { param_id: paramId, type, timeout_ms: 200 },
-        CMD_TIMEOUTS.registerMs,
+        CMD_TIMEOUTS.registerMs
       );
       if (!ret?.ok) continue;
       const value = Number(getResponseValue(ret));
@@ -239,7 +250,7 @@ function clampMitForSafety(h, mode, target, kp, kd, tau) {
     safeTarget = clamp(safeTarget, currentPos - maxStep, currentPos + maxStep);
     if (Math.abs(prevTarget - safeTarget) > 1e-9) {
       notes.push(
-        `MIT step clamp applied around current pos=${currentPos.toFixed(3)} with max_step=${maxStep.toFixed(3)}`,
+        `MIT step clamp applied around current pos=${currentPos.toFixed(3)} with max_step=${maxStep.toFixed(3)}`
       );
     }
   }
@@ -253,7 +264,15 @@ function clampMitForSafety(h, mode, target, kp, kd, tau) {
   };
 }
 
-export async function verifyHitOp({ h, vendors, setTargetFor, sendCmd, setHits, closeBusQuietly, pushLog }) {
+export async function verifyHitOp({
+  h,
+  vendors,
+  setTargetFor,
+  sendCmd,
+  setHits,
+  closeBusQuietly,
+  pushLog,
+}) {
   try {
     await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
     const ret = await sendCmd(
@@ -264,7 +283,7 @@ export async function verifyHitOp({ h, vendors, setTargetFor, sendCmd, setHits, 
         feedback_id: h.mst_id,
         timeout_ms: 1200,
       },
-      CMD_TIMEOUTS.verifyMs,
+      CMD_TIMEOUTS.verifyMs
     );
 
     if (!ret.ok) {
@@ -280,7 +299,7 @@ export async function verifyHitOp({ h, vendors, setTargetFor, sendCmd, setHits, 
             verified_esc_id: Number(ret?.data?.esc_id ?? Number.NaN),
             verified_mst_id: Number(ret?.data?.mst_id ?? Number.NaN),
           },
-        ]),
+        ])
       );
     }
     await closeBusQuietly();
@@ -376,7 +395,12 @@ export async function controlMotorOp({
     action !== 'disable' &&
     action !== 'stop' &&
     action !== 'clear_error' &&
-    blockInvalidControl(pushLog, `move ${h.vendor} ${toHex(h.esc_id)}`, c, requiredMoveFields(h, c.mode))
+    blockInvalidControl(
+      pushLog,
+      `move ${h.vendor} ${toHex(h.esc_id)}`,
+      c,
+      requiredMoveFields(h, c.mode)
+    )
   ) {
     return false;
   }
@@ -391,13 +415,21 @@ export async function controlMotorOp({
     await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
     if (typeof shouldCancel === 'function' && shouldCancel()) return false;
 
-    if (action === 'enable' || action === 'disable' || action === 'stop' || action === 'clear_error') {
+    if (
+      action === 'enable' ||
+      action === 'disable' ||
+      action === 'stop' ||
+      action === 'clear_error'
+    ) {
       const ret = await sendCmd(action, { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
       if (!ret.ok) throw new Error(ret.error || `${action} failed`);
       pushLog(`${action} ${h.vendor} ${toHex(h.esc_id)} ok`, 'ok');
       if (action === 'enable' || action === 'disable') {
         const enabled = action === 'enable';
-        setControls((prev) => ({ ...prev, [motorKey(h)]: { ...(prev[motorKey(h)] || c), enabled } }));
+        setControls((prev) => ({
+          ...prev,
+          [motorKey(h)]: { ...(prev[motorKey(h)] || c), enabled },
+        }));
       }
       if (action === 'clear_error') {
         pushLog(`hint: re-enable ${h.vendor} ${toHex(h.esc_id)} after clear_error`, 'info');
@@ -426,20 +458,42 @@ export async function controlMotorOp({
     }
 
     let op = 'pos_vel';
-    let payload = { vendor: h.vendor, continuous: false, pos: target, vlim, ensure_timeout_ms: 2000 };
+    let payload = {
+      vendor: h.vendor,
+      continuous: false,
+      pos: target,
+      vlim,
+      ensure_timeout_ms: 2000,
+    };
     if (String(h.vendor) === 'robstride') {
       payload = { ...payload, loc_kp: kp };
     }
 
     if (c.mode === 'mit') {
       op = 'mit';
-      payload = { vendor: h.vendor, continuous: false, pos: target, vel: 0, kp, kd, tau, ensure_timeout_ms: 2000 };
+      payload = {
+        vendor: h.vendor,
+        continuous: false,
+        pos: target,
+        vel: 0,
+        kp,
+        kd,
+        tau,
+        ensure_timeout_ms: 2000,
+      };
     } else if (c.mode === 'vel') {
       op = 'vel';
       payload = { vendor: h.vendor, continuous: false, vel: target, ensure_timeout_ms: 2000 };
     } else if (c.mode === 'force_pos') {
       op = 'force_pos';
-      payload = { vendor: h.vendor, continuous: false, pos: target, vlim, ratio, ensure_timeout_ms: 2000 };
+      payload = {
+        vendor: h.vendor,
+        continuous: false,
+        pos: target,
+        vlim,
+        ratio,
+        ensure_timeout_ms: 2000,
+      };
     }
 
     if (typeof shouldCancel === 'function' && shouldCancel()) return false;
@@ -449,15 +503,18 @@ export async function controlMotorOp({
     if (c.mode === 'mit') {
       pushLog(
         `move ${h.vendor} ${toHex(h.esc_id)} mode=mit target=${target.toFixed(3)} kp=${kp.toFixed(3)} kd=${kd.toFixed(3)} tau=${tau.toFixed(3)} ok`,
-        'ok',
+        'ok'
       );
     } else if (String(h.vendor) === 'robstride' && c.mode === 'pos_vel') {
       pushLog(
         `move ${h.vendor} ${toHex(h.esc_id)} mode=pos_vel pos=${target.toFixed(3)} vlim=${vlim.toFixed(3)} loc_kp=${kp.toFixed(3)} ok`,
-        'ok',
+        'ok'
       );
     } else {
-      pushLog(`move ${h.vendor} ${toHex(h.esc_id)} mode=${c.mode} target=${target.toFixed(3)} ok`, 'ok');
+      pushLog(
+        `move ${h.vendor} ${toHex(h.esc_id)} mode=${c.mode} target=${target.toFixed(3)} ok`,
+        'ok'
+      );
     }
     setHits((prev) => mergeHitsByVendor(prev, [{ ...h, updated_at_ms: Date.now() }]));
     return true;
@@ -491,22 +548,33 @@ export async function zeroMotorOp({
       // RobStride zeroing is more reliable in disabled state.
       const disableRet = await sendCmd('disable', { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
       if (!disableRet.ok) {
-        pushLog(`zero ${h.vendor} ${toHex(h.esc_id)} pre-disable failed: ${disableRet.error || 'unknown'}`, 'err');
+        pushLog(
+          `zero ${h.vendor} ${toHex(h.esc_id)} pre-disable failed: ${disableRet.error || 'unknown'}`,
+          'err'
+        );
       }
       await sleepMs(80);
     }
 
-    const zeroRet = await sendCmd('set_zero_position', { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
+    const zeroRet = await sendCmd(
+      'set_zero_position',
+      { vendor: h.vendor },
+      CMD_TIMEOUTS.controlMs
+    );
     if (!zeroRet.ok) throw new Error(zeroRet.error || 'set_zero_position failed');
     if (isRobstride) {
       await sleepMs(120);
     }
 
-    const storeRet = await sendCmd('store_parameters', { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
+    const storeRet = await sendCmd(
+      'store_parameters',
+      { vendor: h.vendor },
+      CMD_TIMEOUTS.controlMs
+    );
     if (!storeRet.ok) {
       pushLog(
         `zero ${h.vendor} ${toHex(h.esc_id)} ok, but store failed: ${storeRet.error || 'unknown'}`,
-        'err',
+        'err'
       );
     } else {
       pushLog(`zero+store ${h.vendor} ${toHex(h.esc_id)} ok`, 'ok');
@@ -517,13 +585,16 @@ export async function zeroMotorOp({
       if (!verifyState.ok) {
         pushLog(
           `zero ${h.vendor} ${toHex(h.esc_id)} done, but post-state failed: ${verifyState.error || 'unknown'}`,
-          'err',
+          'err'
         );
       } else {
         const posNow = Number(verifyState?.data?.pos);
         nextHit = mapResponseToHit(h, verifyState.data);
         if (Number.isFinite(posNow) && Math.abs(posNow) > 0.05) {
-          pushLog(`zero ${h.vendor} ${toHex(h.esc_id)} warning: post-pos=${posNow.toFixed(3)}rad`, 'info');
+          pushLog(
+            `zero ${h.vendor} ${toHex(h.esc_id)} warning: post-pos=${posNow.toFixed(3)}rad`,
+            'info'
+          );
         } else if (Number.isFinite(posNow)) {
           pushLog(`zero ${h.vendor} ${toHex(h.esc_id)} verified pos=${posNow.toFixed(3)}rad`, 'ok');
         }
@@ -551,7 +622,11 @@ export async function refreshMotorStateOp({ h, vendors, setTargetFor, sendCmd, s
       for (const def of DAMIAO_REFRESH_REGISTERS) {
         try {
           const op = def.dataType === 'u32' ? 'get_register_u32' : 'get_register_f32';
-          const regRet = await sendCmd(op, { rid: def.rid, timeout_ms: 1000 }, CMD_TIMEOUTS.registerMs);
+          const regRet = await sendCmd(
+            op,
+            { rid: def.rid, timeout_ms: 1000 },
+            CMD_TIMEOUTS.registerMs
+          );
           if (!regRet?.ok) continue;
           const rawValue = getResponseValue(regRet);
           const value = Number(rawValue ?? Number.NaN);
@@ -570,7 +645,7 @@ export async function refreshMotorStateOp({ h, vendors, setTargetFor, sendCmd, s
 
     pushLog(
       `state refreshed ${h.vendor} ${toHex(h.esc_id)}${String(h.vendor) === 'damiao' || String(h.vendor) === 'robstride' ? ' + params' : ''}`,
-      'ok',
+      'ok'
     );
     return nextHit;
   } catch (e) {
@@ -601,11 +676,7 @@ export async function checkOnlineOnceOp({
     const ret = await sendCmd('state_once', {}, 1200);
     if (!ret.ok) throw new Error(ret.error || 'state_once failed');
 
-    setHits((prev) =>
-      mergeHitsByVendor(prev, [
-        mapResponseToHit(h, ret.data),
-      ]),
-    );
+    setHits((prev) => mergeHitsByVendor(prev, [mapResponseToHit(h, ret.data)]));
 
     if (!silent) pushLog(`online check ${h.vendor} ${toHex(h.esc_id)} online`, 'ok');
     return true;
@@ -618,7 +689,7 @@ export async function checkOnlineOnceOp({
           last_check_ms: Date.now(),
           updated_at_ms: Date.now(),
         },
-      ]),
+      ])
     );
     if (!silent) pushLog(`online check ${h.vendor} ${toHex(h.esc_id)} offline`, 'err');
     return false;
@@ -639,9 +710,11 @@ export async function probeMotorOp({
     const model = modelForHit(h, vendors);
     await setTargetFor(h.vendor, model, h.esc_id, h.mst_id);
 
-    const payload = buildProbePayload(h.vendor, h.esc_id, h.mst_id);
     const fastProbe = Boolean(options?.fastProbe);
     const isRobstride = String(h?.vendor) === 'robstride';
+    const payload = buildProbePayload(h.vendor, h.esc_id, h.mst_id, {
+      feedbackIds: isRobstride ? options?.feedbackIds : undefined,
+    });
     const requestTimeoutMs = fastProbe && isRobstride ? 1000 : CMD_TIMEOUTS.verifyMs;
     if (fastProbe && isRobstride) {
       payload.timeout_ms = Math.max(60, Math.min(Number(payload.timeout_ms) || 120, 120));
@@ -650,7 +723,9 @@ export async function probeMotorOp({
     if (!ret.ok) throw new Error(ret.error || 'probe scan failed');
 
     const list = normalizeHits(h.vendor, ret.data, model);
-    const found = list.find((x) => Number(x.esc_id) === Number(h.esc_id));
+    const found = list.find((x) =>
+      probeHitMatchesTarget(x, h, { acceptAnyFeedbackId: Boolean(options?.acceptAnyFeedbackId) })
+    );
     const online = Boolean(found);
 
     setHits((prev) =>
@@ -663,12 +738,12 @@ export async function probeMotorOp({
           last_check_ms: Date.now(),
           updated_at_ms: Date.now(),
         },
-      ]),
+      ])
     );
 
     pushLog(
       `probe ${h.vendor} ${toHex(h.esc_id)} ${online ? 'online' : 'offline'}`,
-      online ? 'ok' : 'err',
+      online ? 'ok' : 'err'
     );
     if (options?.closeBusAfter !== false) {
       await closeBusQuietly();
@@ -681,8 +756,9 @@ export async function probeMotorOp({
           ...h,
           online: false,
           last_check_ms: Date.now(),
+          updated_at_ms: Date.now(),
         },
-      ]),
+      ])
     );
     pushLog(`probe failed: ${e.message || e}`, 'err');
     if (options?.closeBusAfter !== false) {

@@ -43,5 +43,8 @@ describe('vendors helpers', () => {
   it('builds probe payload', () => {
     expect(buildProbePayload('damiao', 0x02, 0x12)).toMatchObject({ feedback_base: 0x10 });
     expect(buildProbePayload('robstride', 0x02, 0xfd)).toMatchObject({ feedback_ids: [0xfd] });
+    expect(
+      buildProbePayload('robstride', 0x02, 0xfd, { feedbackIds: [0xfd, 0xff, 0xfe] })
+    ).toMatchObject({ feedback_ids: [0xfd, 0xff, 0xfe] });
   });
 });

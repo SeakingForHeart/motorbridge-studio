@@ -13,13 +13,46 @@ const LS_HITS_KEY = 'motorbridge_studio_hits_v1';
 const LS_CONTROLS_KEY = 'motorbridge_studio_controls_v1';
 const LS_ACTIVE_MOTOR_KEY = 'motorbridge_studio_active_motor_v1';
 
+function streamFrameMotorId(data) {
+  const motorId = Number(data?.motor_id);
+  if (Number.isFinite(motorId)) return motorId;
+  if (String(data?.vendor) === 'robstride') {
+    const deviceId = Number(data?.device_id);
+    if (Number.isFinite(deviceId)) return deviceId;
+  }
+  return Number.NaN;
+}
+
 function streamFrameMatchesHit(data, hit) {
   if (!data || !hit) return false;
   if (data.vendor && String(data.vendor) !== String(hit.vendor)) return false;
-  const motorId = Number(data.motor_id);
+  const motorId = streamFrameMotorId(data);
   const feedbackId = Number(data.feedback_id);
   if (!Number.isFinite(motorId) || !Number.isFinite(feedbackId)) return false;
   return Number(hit.esc_id) === motorId && Number(hit.mst_id) === feedbackId;
+}
+
+function findStreamHitIndex(prev, data, activeMotorKey) {
+  const exact = prev.findIndex((h) => streamFrameMatchesHit(data, h));
+  if (exact >= 0) return exact;
+
+  const vendor = String(data?.vendor || '');
+  const motorId = streamFrameMotorId(data);
+  const candidates = vendor ? prev.filter((h) => String(h.vendor) === vendor) : prev;
+  if (Number.isFinite(motorId)) {
+    const byMotorId = candidates.filter((h) => Number(h.esc_id) === motorId);
+    if (byMotorId.length === 1) {
+      const key = motorKey(byMotorId[0]);
+      return prev.findIndex((h) => motorKey(h) === key);
+    }
+  }
+
+  // Legacy gateway state frames may omit ids. Only use the active-card fallback
+  // when the stream cannot be confused with another card.
+  if (activeMotorKey && candidates.length === 1) {
+    return prev.findIndex((h) => motorKey(h) === activeMotorKey);
+  }
+  return -1;
 }
 
 function preserveParamStreamFields(hit, next) {
@@ -68,10 +101,7 @@ export function useMotorStudio() {
   const handleGatewayState = useCallback(
     (state) => {
       setHits((prev) => {
-        let index = prev.findIndex((h) => streamFrameMatchesHit(state, h));
-        if (index < 0 && activeMotorKey) {
-          index = prev.findIndex((h) => motorKey(h) === activeMotorKey);
-        }
+        const index = findStreamHitIndex(prev, state, activeMotorKey);
         if (index < 0) return prev;
         const current = prev[index];
         if (state?.vendor && String(state.vendor) !== String(current.vendor)) return prev;
@@ -86,10 +116,7 @@ export function useMotorStudio() {
   const handleGatewayParams = useCallback(
     (data) => {
       setHits((prev) => {
-        let index = prev.findIndex((h) => streamFrameMatchesHit(data, h));
-        if (index < 0 && activeMotorKey) {
-          index = prev.findIndex((h) => motorKey(h) === activeMotorKey);
-        }
+        const index = findStreamHitIndex(prev, data, activeMotorKey);
         if (index < 0) return prev;
         const current = prev[index];
         if (data?.vendor && String(data.vendor) !== String(current.vendor)) return prev;
@@ -175,10 +202,7 @@ export function useMotorStudio() {
   const damiaoArmTelemetryItemsRef = useRef([]);
   damiaoArmTelemetryItemsRef.current = damiaoArmTelemetryItems;
   const damiaoArmTelemetrySignature = useMemo(
-    () =>
-      damiaoArmTelemetryItems
-        .map((x) => `${x.motor_id}:${x.feedback_id}:${x.model}`)
-        .join('|'),
+    () => damiaoArmTelemetryItems.map((x) => `${x.motor_id}:${x.feedback_id}:${x.model}`).join('|'),
     [damiaoArmTelemetryItems]
   );
   const gatewayConnected = connectionState.connected;

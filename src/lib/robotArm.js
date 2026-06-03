@@ -10,7 +10,7 @@ const ROBOT_ARM_MODEL_ALIASES = {
   'rebot-arm-7dof': 'rebot-arm-damiao',
   'rebot-arm-lite': 'rebot-arm-robstride',
   '7dof': 'rebot-arm-damiao',
-  'lite': 'rebot-arm-robstride',
+  lite: 'rebot-arm-robstride',
 };
 
 const PROFILE_VENDOR = {
@@ -23,7 +23,7 @@ const PROFILE_DEFAULT_MODEL = {
   'rebot-arm-robstride': 'rs-00',
 };
 
-const ROBSTRIDE_FEEDBACK_IDS = [0xFD, 0xFF, 0xFE];
+export const ROBSTRIDE_FEEDBACK_IDS = [0xfd, 0xff, 0xfe];
 
 export const ROBOT_ARM_JOINTS = [
   { joint: 1, esc_id: 0x01 },
@@ -36,9 +36,30 @@ export const ROBOT_ARM_JOINTS = [
 ];
 
 export const REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE = {
-  1: { ctrlMode: '2', currentBw: '1000', velKp: '0.0125', velKi: '0.004', posKp: '150', posKi: '0.5' },
-  2: { ctrlMode: '2', currentBw: '1000', velKp: '0.013', velKi: '0.004', posKp: '200', posKi: '10' },
-  3: { ctrlMode: '2', currentBw: '1000', velKp: '0.013', velKi: '0.004', posKp: '200', posKi: '10' },
+  1: {
+    ctrlMode: '2',
+    currentBw: '1000',
+    velKp: '0.0125',
+    velKi: '0.004',
+    posKp: '150',
+    posKi: '0.5',
+  },
+  2: {
+    ctrlMode: '2',
+    currentBw: '1000',
+    velKp: '0.013',
+    velKi: '0.004',
+    posKp: '200',
+    posKi: '10',
+  },
+  3: {
+    ctrlMode: '2',
+    currentBw: '1000',
+    velKp: '0.013',
+    velKi: '0.004',
+    posKp: '200',
+    posKi: '10',
+  },
   4: { ctrlMode: '2', currentBw: '1000', velKp: '0.0008', velKi: '0.002', posKp: '50', posKi: '1' },
   5: { ctrlMode: '2', currentBw: '1000', velKp: '0.0008', velKi: '0.002', posKp: '50', posKi: '1' },
   6: { ctrlMode: '2', currentBw: '1000', velKp: '0.0008', velKi: '0.002', posKp: '50', posKi: '1' },
@@ -71,7 +92,7 @@ export const REBOT_ARM_ROBSTRIDE_JOINT_LIMITS = {
   // wrist_flex(-80,90), wrist_yaw(-90,90), wrist_roll(-90,90), gripper(0,270)
   1: { min: -2.53, max: 2.53 },
   2: { min: 0.0, max: 2.96 },
-  3: { min: 0.0, max: 3.5},
+  3: { min: 0.0, max: 3.5 },
   4: { min: -1.39, max: 1.57 },
   5: { min: -1.57, max: 1.57 },
   6: { min: -1.57, max: 1.57 },
@@ -113,8 +134,8 @@ export function jointLimitsForProfile(armModel) {
 
 export function defaultFeedbackIdForProfile(armModel, escId) {
   const vendor = armVendorForProfile(armModel);
-  if (vendor === 'robstride') return 0xFD;
-  return 0x10 + (Number(escId) & 0x0F);
+  if (vendor === 'robstride') return 0xfd;
+  return 0x10 + (Number(escId) & 0x0f);
 }
 
 export function isProfileJointHit(hit, armModel, jointCfg) {

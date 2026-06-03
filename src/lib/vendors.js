@@ -67,7 +67,7 @@ export function buildSetIdPayload(vendor, h, newEsc, newMst) {
   return null;
 }
 
-export function buildProbePayload(vendor, escId, mstId) {
+export function buildProbePayload(vendor, escId, mstId, options = {}) {
   const payload = {
     vendor,
     start_id: Number(escId),
@@ -80,7 +80,15 @@ export function buildProbePayload(vendor, escId, mstId) {
     payload.feedback_base = feedbackBase;
   }
   if (vendor === 'robstride') {
-    payload.feedback_ids = [Number(mstId)];
+    const feedbackIds = Array.isArray(options.feedbackIds) ? options.feedbackIds : [mstId];
+    payload.feedback_ids = [
+      ...new Set(
+        feedbackIds
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id >= 0 && id <= 0xff)
+      ),
+    ];
+    if (payload.feedback_ids.length === 0) payload.feedback_ids = [Number(mstId)];
   }
 
   return payload;
