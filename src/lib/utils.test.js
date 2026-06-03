@@ -12,13 +12,13 @@ describe('utils normalizeHits', () => {
     expect(damiaoModelCandidates('')).toEqual(['4340', '4310']);
   });
 
-  it('uses probe as robstride esc_id when both probe and device_id exist', () => {
+  it('uses confirmed RobStride device_id as esc_id', () => {
     const normalized = normalizeHits(
       'robstride',
       {
         hits: [
-          { probe: 1, device_id: 35, responder_id: 254, feedback_id: 0xfd },
-          { probe: 2, device_id: 71, responder_id: 254, feedback_id: 0xfd },
+          { probe: 1, device_id: 1, responder_id: 254, feedback_id: 0xfd },
+          { probe: 2, device_id: 2, responder_id: 254, feedback_id: 0xfd },
         ],
       },
       'rs-00'
@@ -27,8 +27,37 @@ describe('utils normalizeHits', () => {
     expect(normalized).toHaveLength(2);
     expect(normalized[0].esc_id).toBe(1);
     expect(normalized[1].esc_id).toBe(2);
-    expect(normalized[0].device_id).toBe(35);
-    expect(normalized[1].device_id).toBe(71);
+    expect(normalized[0].device_id).toBe(1);
+    expect(normalized[1].device_id).toBe(2);
+  });
+
+  it('drops RobStride ping hits when probe and device_id disagree', () => {
+    const normalized = normalizeHits(
+      'robstride',
+      {
+        hits: [
+          { probe: 1, device_id: 2, responder_id: 254, feedback_id: 0xfd },
+          { probe: 2, device_id: 2, responder_id: 254, feedback_id: 0xfd },
+        ],
+      },
+      'rs-00'
+    );
+
+    expect(normalized).toHaveLength(1);
+    expect(normalized[0].esc_id).toBe(2);
+  });
+
+  it('keeps RobStride read-param fallback hits when no device_id is reported', () => {
+    const [hit] = normalizeHits(
+      'robstride',
+      {
+        hits: [{ probe: 3, via: 'read_param', feedback_id: 0xfd, param_id: '0x7019' }],
+      },
+      'rs-00'
+    );
+
+    expect(hit.esc_id).toBe(3);
+    expect(hit.probe).toBe(3);
   });
 
   it('adds RobStride model limits to scan hits', () => {

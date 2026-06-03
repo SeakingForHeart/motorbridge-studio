@@ -157,16 +157,21 @@ export function normalizeHits(vendor, data, model) {
       continue;
     }
     if (vendor === 'robstride') {
-      // WS scan probe is the authoritative motor ID on bus.
-      // device_id can be vendor-specific payload value and may not match probe ID.
-      const probeId = Number(h.probe ?? 0);
+      // RobStride probe is the candidate ID. A ping hit is confirmed only when
+      // the response device_id agrees, otherwise it is likely a stale/cross reply.
+      const probeId = Number(h.probe ?? Number.NaN);
       const deviceId = Number(h.device_id ?? Number.NaN);
+      const hasProbeId = Number.isFinite(probeId) && probeId > 0;
+      const hasDeviceId = Number.isFinite(deviceId) && deviceId > 0;
+      if (hasProbeId && hasDeviceId && probeId !== deviceId) continue;
+      const motorId = hasDeviceId ? deviceId : probeId;
+      if (!Number.isFinite(motorId) || motorId <= 0) continue;
       const modelPatch = robstrideModelLimits(model);
       out.push({
         vendor,
         model,
-        probe: Number.isFinite(probeId) && probeId > 0 ? probeId : deviceId,
-        esc_id: Number.isFinite(probeId) && probeId > 0 ? probeId : deviceId,
+        probe: hasProbeId ? probeId : motorId,
+        esc_id: motorId,
         device_id: deviceId,
         responder_id: Number(h.responder_id ?? Number.NaN),
         mst_id: Number(h.feedback_id ?? 0xFD),
