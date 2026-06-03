@@ -606,6 +606,19 @@
   min-width: 0;
 }
 
+.firstUseBtn {
+  background: #eef4ff;
+  border-color: #b9caff;
+  color: #244cae;
+}
+
+.firstUseBtn:hover,
+.firstUseBtn:focus-visible {
+  background: #dfe9ff;
+  border-color: #8faaff;
+  color: #183f9c;
+}
+
 .armTopToolbar .miniField {
   min-width: min(180px, 100%);
   max-width: 280px;

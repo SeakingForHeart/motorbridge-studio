@@ -376,6 +376,9 @@ export const es = {
   param_value: 'Valor de parámetro',
   read_param: 'Leer parámetro',
   write_param: 'Escribir parámetro',
+  confirm_robstride_param_write_title: 'Confirmar escritura de parámetro RobStride',
+  confirm_robstride_param_write:
+    'Vas a escribir en RobStride {{motor}} el parámetro {{param}} ({{type}}) = {{value}}.\n\nEsto cambia parámetros de bajo nivel del motor y puede afectar el movimiento. Continúa solo si el motor está asegurado y la parada de emergencia está lista.',
   extra_snapshot_fields: 'Campos extra del snapshot',
   full_motor_snapshot: 'Snapshot completo del motor',
 

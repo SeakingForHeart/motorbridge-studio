@@ -369,6 +369,9 @@ export const en = {
   param_value: 'Param Value',
   read_param: 'Read Param',
   write_param: 'Write Param',
+  confirm_robstride_param_write_title: 'Confirm RobStride Parameter Write',
+  confirm_robstride_param_write:
+    'About to write RobStride {{motor}} parameter {{param}} ({{type}}) = {{value}}.\n\nThis changes low-level motor parameters and may affect motion behavior. Continue only after the motor is safely supported and E-stop is ready.',
   extra_snapshot_fields: 'Extra Snapshot Fields',
   full_motor_snapshot: 'Full Motor Snapshot',
 

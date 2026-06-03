@@ -355,6 +355,9 @@ export const zh = {
   param_value: '参数值',
   read_param: '读取参数',
   write_param: '写入参数',
+  confirm_robstride_param_write_title: '确认写入 RobStride 参数',
+  confirm_robstride_param_write:
+    '即将向 RobStride {{motor}} 写入参数 {{param}} ({{type}}) = {{value}}。\n\n该操作会改变电机底层参数，可能影响运动行为。请确认电机已安全支撑、急停可用后继续。',
   extra_snapshot_fields: '额外快照字段',
   full_motor_snapshot: '完整电机快照',
 

@@ -86,12 +86,20 @@ export function MotorDetailPanel({
   const [showLessCommonDamiaoRw, setShowLessCommonDamiaoRw] = React.useState(false);
   const [advancedRiskAccepted, setAdvancedRiskAccepted] = React.useState(false);
   const [advancedRiskDialogOpen, setAdvancedRiskDialogOpen] = React.useState(false);
+  const [paramWriteConfirm, setParamWriteConfirm] = React.useState({
+    open: false,
+    title: '',
+    message: '',
+    danger: true,
+  });
   const [opBusy, setOpBusy] = React.useState(false);
+  const paramWriteConfirmResolverRef = React.useRef(null);
   const liveMoveTimerRef = React.useRef(null);
   const pendingLiveMoveRef = React.useRef(null);
   const liveMoveSeqRef = React.useRef(0);
 
   const vendor = String(activeMotor?.vendor || '').toLowerCase();
+  const activeMotorIdentity = activeMotor ? motorKey(activeMotor) : '';
   const modeOptions = modesForVendor(gatewayCapabilities, vendor);
   const isRobstridePosVel = vendor === 'robstride' && activeControl?.mode === 'pos_vel';
   const positionSliderEnabled =
@@ -113,6 +121,19 @@ export function MotorDetailPanel({
     const cliType = toRobstrideCliType(selectedRobstrideParam.dataType);
     if (cliType && cliType !== rsParamType) setRsParamType(cliType);
   }, [rsParamType, selectedRobstrideParam]);
+  React.useEffect(() => {
+    setAdvancedOpen(false);
+    setAdvancedRiskAccepted(false);
+    setAdvancedRiskDialogOpen(false);
+  }, [activeMotorIdentity]);
+  React.useEffect(
+    () => () => {
+      const resolve = paramWriteConfirmResolverRef.current;
+      paramWriteConfirmResolverRef.current = null;
+      if (resolve) resolve(false);
+    },
+    []
+  );
   const filteredRobstrideParams = React.useMemo(() => {
     const q = rsSearch.trim().toLowerCase();
     return ROBSTRIDE_PARAM_CATALOG.filter((x) => {
@@ -144,8 +165,7 @@ export function MotorDetailPanel({
     : true;
   const key = activeMotor ? motorKey(activeMotor) : '';
   const patch = (field) => (e) => patchControl(key, { [field]: e.target.value });
-  const patchNumber = (field) => (e) =>
-    patchControl(key, { [field]: e.target.value });
+  const patchNumber = (field) => (e) => patchControl(key, { [field]: e.target.value });
   React.useEffect(
     () => () => {
       if (liveMoveTimerRef.current) clearTimeout(liveMoveTimerRef.current);
@@ -212,6 +232,28 @@ export function MotorDetailPanel({
     patchControl(key, { target });
     scheduleLiveTargetMove(target);
   };
+
+  const askParamWriteConfirm = React.useCallback((cfg) => {
+    const previous = paramWriteConfirmResolverRef.current;
+    if (previous) previous(false);
+    return new Promise((resolve) => {
+      paramWriteConfirmResolverRef.current = resolve;
+      setParamWriteConfirm({
+        open: true,
+        title: String(cfg?.title || ''),
+        message: String(cfg?.message || ''),
+        danger: Boolean(cfg?.danger ?? true),
+      });
+    });
+  }, []);
+
+  const closeParamWriteConfirm = (result) => {
+    const resolve = paramWriteConfirmResolverRef.current;
+    paramWriteConfirmResolverRef.current = null;
+    setParamWriteConfirm((prev) => ({ ...prev, open: false }));
+    if (resolve) resolve(Boolean(result));
+  };
+
   if (!activeMotor || !activeControl) {
     return <div className="tip">{t('select_motor_tip')}</div>;
   }
@@ -280,6 +322,25 @@ export function MotorDetailPanel({
                 {t('cancel')}
               </button>
               <button className="dangerBtn" onClick={confirmOpenAdvanced}>
+                {t('confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {paramWriteConfirm.open && (
+        <div className="armDialogMask" role="dialog" aria-modal="true" aria-live="assertive">
+          <div className="armDialogCard">
+            <h3>{paramWriteConfirm.title || t('confirm_robstride_param_write_title')}</h3>
+            <p>{paramWriteConfirm.message}</p>
+            <div className="row toolbar compactToolbar">
+              <button className="ghostBtn" onClick={() => closeParamWriteConfirm(false)}>
+                {t('cancel')}
+              </button>
+              <button
+                className={paramWriteConfirm.danger ? 'dangerBtn' : 'primary'}
+                onClick={() => closeParamWriteConfirm(true)}
+              >
                 {t('confirm')}
               </button>
             </div>
@@ -723,6 +784,20 @@ export function MotorDetailPanel({
                   }
                   onClick={() =>
                     runOp(async () => {
+                      const paramLabel = selectedRobstrideParam
+                        ? `${toHex(selectedRobstrideParam.id)} ${selectedRobstrideParam.name}`
+                        : String(rsParamId);
+                      const confirmed = await askParamWriteConfirm({
+                        title: t('confirm_robstride_param_write_title'),
+                        message: t('confirm_robstride_param_write', {
+                          motor: `${toHex(activeMotor.esc_id)} / ${toHex(activeMotor.mst_id)}`,
+                          param: paramLabel,
+                          type: rsParamType,
+                          value: rsParamValue,
+                        }),
+                        danger: true,
+                      });
+                      if (!confirmed) return;
                       await runMotorOp(activeMotor, 'robstride_write_param', {
                         param_id: rsParamId,
                         type: rsParamType,
