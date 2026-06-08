@@ -216,9 +216,7 @@ export function useMotorStudio() {
     robotArmState.armParamOpBusy ||
     robotArmState.armSelfCheckBusy;
 
-  useEffect(() => {
-    armParamOpBusyRef.current = Boolean(robotArmState.armParamOpBusy);
-  }, [robotArmState.armParamOpBusy]);
+  armParamOpBusyRef.current = Boolean(robotArmState.armParamOpBusy);
 
   useEffect(() => {
     damiaoArmTelemetryUnsupportedRef.current = false;

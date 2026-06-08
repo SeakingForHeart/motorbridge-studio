@@ -221,7 +221,11 @@ export function ParamManager({
       setParamInfo(`${t('arm_params_write_failed')}: ${e.message || e}`);
     } finally {
       await sendCmd?.('state_stream', { enabled: true }, 3000).catch(() => {});
-      await sendCmd?.('param_stream', { enabled: true }, 3000).catch(() => {});
+      const paramStreamConfig =
+        paramVendor === 'robstride'
+          ? { enabled: true, profile: 'realtime', interval_ms: 100, timeout_ms: 80 }
+          : { enabled: true, profile: 'realtime', interval_ms: 500, timeout_ms: 80 };
+      await sendCmd?.('param_stream', paramStreamConfig, 3000).catch(() => {});
       setArmParamOpBusy?.(false);
       setParamBusy(false);
     }
