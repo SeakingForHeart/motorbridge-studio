@@ -6,7 +6,8 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import URDFLoader from 'urdf-loader';
 
-const URDF_PATH = '/resources/arm02/reBot_B601_DM_with_gripper/urdf/reBot_B601_DM_with_gripper.urdf';
+const ARM02_PACKAGE_PATH = `${import.meta.env.BASE_URL}resources/arm02/reBot_B601_DM_with_gripper`;
+const URDF_PATH = `${ARM02_PACKAGE_PATH}/urdf/reBot_B601_DM_with_gripper.urdf`;
 const GRIPPER_MAX_OPEN_M = 0.0515;
 
 function normalizeArm02JointTargets(map) {
@@ -885,7 +886,7 @@ export function ArmUrdfViewer({
     trailHeadRef.current = trailHead;
 
     const loader = new URDFLoader();
-    loader.packages = { reBot_B601_DM_with_gripper: '/resources/arm02/reBot_B601_DM_with_gripper' };
+    loader.packages = { reBot_B601_DM_with_gripper: ARM02_PACKAGE_PATH };
     loader.load(
       URDF_PATH,
       (robot) => {
