@@ -120,8 +120,7 @@ export const en = {
   arm_reset_pose: 'Reset Pose',
   arm_bulk_busy:
     'Bulk operation running: live dragging and per-joint controls are temporarily locked.',
-  arm_zero_all_guard_hint:
-    'Safety gate: "Zero All" is allowed only when all joints are near zero (use "Reset Pose" first).',
+  arm_zero_all_guard_hint: 'Safety gate: "Zero All" is allowed only when all joints are near zero.',
   arm_zero_all_blocked: 'Safety check failed. Joints not near zero (±{{eps}}rad): {{joints}}',
   arm_zero_all_force_title: 'Force Zero Confirmation',
   arm_zero_all_force_hint:

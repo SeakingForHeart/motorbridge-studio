@@ -121,7 +121,7 @@ export const es = {
   arm_bulk_busy:
     'Operación por lotes en curso: arrastre en vivo y control por articulación bloqueados temporalmente.',
   arm_zero_all_guard_hint:
-    'Puerta de seguridad: "Calibrar cero todas" solo se permite cuando todas las articulaciones están cerca de cero (use "Volver a cero mecánico").',
+    'Puerta de seguridad: "Calibrar cero todas" solo se permite cuando todas las articulaciones están cerca de cero.',
   arm_zero_all_blocked:
     'Fallo de seguridad. Articulaciones fuera de cero (±{{eps}}rad): {{joints}}',
   arm_zero_all_force_title: 'Confirmación de Cero Forzado',

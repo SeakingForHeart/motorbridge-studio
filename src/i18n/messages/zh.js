@@ -112,8 +112,7 @@ export const zh = {
   arm_zero_all: '全部校零',
   arm_reset_pose: '回机械零位',
   arm_bulk_busy: '批量操作执行中，已临时锁定实时拖动与单关节控制。',
-  arm_zero_all_guard_hint:
-    '安全门禁：仅当全部关节位于零位附近（建议先点击“回机械零位”）才可执行“全部校零”',
+  arm_zero_all_guard_hint: '安全门禁：仅当全部关节位于零位附近才可执行“全部校零”',
   arm_zero_all_blocked: '未满足安全条件，以下关节未到零位附近（±{{eps}}rad）：{{joints}}',
   arm_zero_all_force_title: '强制校零确认',
   arm_zero_all_force_hint:
