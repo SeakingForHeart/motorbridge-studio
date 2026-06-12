@@ -183,8 +183,9 @@ export function useGatewayBridge({
     reconnectAttemptRef.current = 0;
     clearReconnectTimer();
     connectingRef.current = false;
-    ensureClient().disconnect();
+    setConnected(false);
     setConnText(t('conn_disconnected'));
+    ensureClient().disconnect();
   };
 
   const closeBusQuietly = async () => {
