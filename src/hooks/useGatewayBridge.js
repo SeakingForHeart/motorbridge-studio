@@ -6,6 +6,8 @@ import { normalizeGatewayCapabilities, WS_V1_FALLBACK_CAPABILITIES } from '../li
 export function useGatewayBridge({
   wsUrl,
   channel,
+  wsTokenEnabled,
+  wsToken,
   pushLog,
   setStateSnapshot,
   onGatewayState,
@@ -23,8 +25,11 @@ export function useGatewayBridge({
   const reconnectAttemptRef = useRef(0);
   const shouldAutoReconnectRef = useRef(false);
   const connectingRef = useRef(false);
+  const lastConnectUrlRef = useRef('');
+  const connectConfigRef = useRef({ wsUrl, wsTokenEnabled, wsToken });
   const onGatewayStateRef = useRef(onGatewayState);
   const onGatewayParamsRef = useRef(onGatewayParams);
+  connectConfigRef.current = { wsUrl, wsTokenEnabled, wsToken };
   onGatewayStateRef.current = onGatewayState;
   onGatewayParamsRef.current = onGatewayParams;
 
@@ -42,14 +47,32 @@ export function useGatewayBridge({
     return exp + Math.floor(Math.random() * 300);
   };
 
-  const connectNow = (client, statusText = '') => {
-    if (connectingRef.current || connected || client?.isConnected?.()) return;
+  const buildWsConnectUrl = () => {
+    const { wsUrl: nextWsUrl, wsTokenEnabled: nextWsTokenEnabled, wsToken: nextWsToken } =
+      connectConfigRef.current;
+    const baseUrl = nextWsUrl.trim();
+    if (!nextWsTokenEnabled) return baseUrl;
+    if (!nextWsToken.trim()) {
+      throw new Error(t('ws_token_required'));
+    }
+    const url = new URL(baseUrl);
+    url.searchParams.set('motorbridge_ws_token', nextWsToken.trim());
+    return url.toString();
+  };
+
+  const connectNow = (client, statusText = '', forceReconnect = false) => {
+    const nextUrl = buildWsConnectUrl();
+    const isAlreadyConnected = connected || client?.isConnected?.();
+    if (connectingRef.current) return;
+    if (isAlreadyConnected && !forceReconnect && nextUrl === lastConnectUrlRef.current) return;
     connectingRef.current = true;
     setConnText(statusText || t('conn_connecting'));
     try {
-      client.connect(wsUrl.trim());
+      lastConnectUrlRef.current = nextUrl;
+      client.connect(nextUrl);
     } catch (e) {
       connectingRef.current = false;
+      pushLog(e.message || e, 'err');
       throw e;
     }
   };
@@ -120,7 +143,7 @@ export function useGatewayBridge({
           connectingRef.current = false;
           setConnected(true);
           setConnText(t('conn_connected'));
-          pushLog(t('log_connected', { url: wsUrl }), 'ok');
+          pushLog(t('log_connected', { url: lastConnectUrlRef.current || connectConfigRef.current.wsUrl }), 'ok');
           clientRef.current
             ?.send('capabilities', {}, 3000)
             .then((ret) => {
@@ -152,7 +175,7 @@ export function useGatewayBridge({
           reconnectTimerRef.current = setTimeout(() => {
             reconnectTimerRef.current = null;
             try {
-              connectNow(clientRef.current, t('conn_reconnecting_n', { n: attempt }));
+              connectNow(clientRef.current, t('conn_reconnecting_n', { n: attempt }), true);
             } catch (e) {
               pushLog(t('log_reconnect_start_failed', { err: e.message || e }), 'err');
             }
@@ -175,7 +198,14 @@ export function useGatewayBridge({
   const connectWs = () => {
     shouldAutoReconnectRef.current = true;
     clearReconnectTimer();
-    connectNow(ensureClient());
+    try {
+      connectNow(ensureClient());
+    } catch {
+      shouldAutoReconnectRef.current = false;
+      connectingRef.current = false;
+      setConnected(false);
+      setConnText(t('conn_disconnected'));
+    }
   };
 
   const disconnectWs = () => {
@@ -183,6 +213,7 @@ export function useGatewayBridge({
     reconnectAttemptRef.current = 0;
     clearReconnectTimer();
     connectingRef.current = false;
+    lastConnectUrlRef.current = '';
     setConnected(false);
     setConnText(t('conn_disconnected'));
     ensureClient().disconnect();

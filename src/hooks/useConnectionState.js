@@ -6,10 +6,14 @@ export function useConnectionState({ pushLog, setStateSnapshot, onGatewayState, 
   const [wsUrl, setWsUrl] = useState(APP_DEFAULTS.wsUrl);
   const [channel, setChannel] = useState(APP_DEFAULTS.channel);
   const [scanTimeoutMs, setScanTimeoutMs] = useState(APP_DEFAULTS.scanTimeoutMs);
+  const [wsTokenEnabled, setWsTokenEnabled] = useState(false);
+  const [wsToken, setWsToken] = useState('');
 
   const bridge = useGatewayBridge({
     wsUrl,
     channel,
+    wsTokenEnabled,
+    wsToken,
     pushLog,
     setStateSnapshot,
     onGatewayState,
@@ -23,6 +27,10 @@ export function useConnectionState({ pushLog, setStateSnapshot, onGatewayState, 
     setChannel,
     scanTimeoutMs,
     setScanTimeoutMs,
+    wsTokenEnabled,
+    setWsTokenEnabled,
+    wsToken,
+    setWsToken,
     ...bridge,
   };
 }

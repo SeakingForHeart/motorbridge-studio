@@ -277,9 +277,47 @@
 
 .connCompactGrid {
   display: grid;
-  grid-template-columns: minmax(240px, 2.1fr) minmax(120px, 0.8fr) minmax(220px, 1.8fr) minmax(120px, 0.8fr);
+  grid-template-columns: minmax(220px, 2fr) minmax(180px, 0.9fr) minmax(260px, 1.3fr);
   gap: 8px;
   align-items: end;
+}
+
+.connFieldUrl {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.connFieldTokenToggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.connFieldTokenToggle label {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.connFieldToken {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.connFieldTransport {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.connFieldChannel {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.connFieldTimeout {
+  grid-column: 3;
+  grid-row: 2;
 }
 
 .compactField label {
@@ -290,6 +328,45 @@
 .compactField input,
 .compactField select {
   padding: 6px 8px;
+}
+
+.tokenInputWrap {
+  position: relative;
+}
+
+.tokenInputWrap input {
+  padding-right: 40px;
+}
+
+.tokenEyeBtn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7f8fb4;
+  cursor: pointer;
+}
+
+.tokenEyeBtn:hover:not(:disabled) {
+  color: #4a6299;
+}
+
+.tokenEyeBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.tokenEyeBtn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .inlineInput,
@@ -524,6 +601,16 @@
 
   .connCompactGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .connFieldUrl,
+  .connFieldTokenToggle,
+  .connFieldToken,
+  .connFieldTransport,
+  .connFieldChannel,
+  .connFieldTimeout {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .helpCenterOverview {
