@@ -19,6 +19,7 @@ import {
 } from '../lib/utils';
 import { useI18n } from '../i18n';
 import { useConnectionContext, usePreferencesContext } from '../hooks/useMotorStudioContext';
+import { ConfirmDialog } from './ConfirmDialog';
 
 function ModeSelect({ modes, value, onChange }) {
   return (
@@ -312,41 +313,23 @@ export function MotorDetailPanel({
 
   return (
     <>
-      {advancedRiskDialogOpen && (
-        <div className="armDialogMask" role="dialog" aria-modal="true" aria-live="assertive">
-          <div className="armDialogCard">
-            <h3>{t('advanced_show')}</h3>
-            <p>{t('advanced_risk_confirm')}</p>
-            <div className="row toolbar compactToolbar">
-              <button className="ghostBtn" onClick={() => setAdvancedRiskDialogOpen(false)}>
-                {t('cancel')}
-              </button>
-              <button className="dangerBtn" onClick={confirmOpenAdvanced}>
-                {t('confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {paramWriteConfirm.open && (
-        <div className="armDialogMask" role="dialog" aria-modal="true" aria-live="assertive">
-          <div className="armDialogCard">
-            <h3>{paramWriteConfirm.title || t('confirm_robstride_param_write_title')}</h3>
-            <p>{paramWriteConfirm.message}</p>
-            <div className="row toolbar compactToolbar">
-              <button className="ghostBtn" onClick={() => closeParamWriteConfirm(false)}>
-                {t('cancel')}
-              </button>
-              <button
-                className={paramWriteConfirm.danger ? 'dangerBtn' : 'primary'}
-                onClick={() => closeParamWriteConfirm(true)}
-              >
-                {t('confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={advancedRiskDialogOpen}
+        title={t('advanced_show')}
+        message={t('advanced_risk_confirm')}
+        danger
+        onCancel={() => setAdvancedRiskDialogOpen(false)}
+        onConfirm={confirmOpenAdvanced}
+      />
+      <ConfirmDialog
+        open={paramWriteConfirm.open}
+        title={paramWriteConfirm.title || t('confirm_robstride_param_write_title')}
+        message={paramWriteConfirm.message}
+        danger={paramWriteConfirm.danger}
+        onCancel={() => closeParamWriteConfirm(false)}
+        onConfirm={() => closeParamWriteConfirm(true)}
+      />
+
       <div className="sectionTitle">
         <h2>
           {VENDOR_LABELS[activeMotor.vendor] || activeMotor.vendor} {toHex(activeMotor.esc_id)}

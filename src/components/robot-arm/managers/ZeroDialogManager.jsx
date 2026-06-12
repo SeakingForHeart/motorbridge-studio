@@ -2,7 +2,7 @@ import React from 'react';
 import { useI18n } from '../../../i18n';
 import { sleep } from '../../../lib/async';
 import { ZERO_SAFE_EPS_RAD } from '../../../lib/robotArm';
-import { ZeroConfirmDialog } from '../ZeroConfirmDialog';
+import { ConfirmDialog } from '../../ConfirmDialog';
 import { clampByLimit, jointLimit } from './armMotionUtils';
 
 export function ZeroDialogManager({
@@ -149,7 +149,7 @@ export function ZeroDialogManager({
 
   return (
     <>
-      <ZeroConfirmDialog
+      <ConfirmDialog
         open={zeroConfirm.open}
         title={zeroConfirm.title}
         message={zeroConfirm.message}

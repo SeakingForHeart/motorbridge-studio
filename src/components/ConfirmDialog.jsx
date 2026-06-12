@@ -1,10 +1,11 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n';
 
 export function ConfirmDialog({ open, title, message, danger, onCancel, onConfirm }) {
   const { t } = useI18n();
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="armDialogMask" role="dialog" aria-modal="true" aria-live="assertive">
       <div className="armDialogCard">
         <h3>{title || t('confirm_dialog_title')}</h3>
@@ -18,6 +19,7 @@ export function ConfirmDialog({ open, title, message, danger, onCancel, onConfir
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

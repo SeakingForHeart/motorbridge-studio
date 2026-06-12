@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n';
 import { ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD, jointLimitsForProfile } from '../lib/robotArm';
 import { parseNum } from '../lib/utils';
@@ -27,7 +28,7 @@ import {
 function FirstUseDialog({ open, onClose }) {
   const { t } = useI18n();
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="armDialogMask" role="dialog" aria-modal="true">
       <div className="armDialogCard">
         <h3>{t('arm_first_use_title')}</h3>
@@ -45,7 +46,8 @@ function FirstUseDialog({ open, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
