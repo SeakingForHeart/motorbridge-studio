@@ -62,7 +62,7 @@ export function JointControlPanel({
           {t('arm_right_control')} · {t('joint')} {activeRow.joint}
         </h2>
         <span className="tip">
-          ESC {toHex(activeRow.hit.esc_id)} / MST {toHex(activeRow.hit.mst_id)}
+          {t('esc_id')} {toHex(activeRow.hit.esc_id)} / {t('mst_id')} {toHex(activeRow.hit.mst_id)}
         </span>
       </div>
 

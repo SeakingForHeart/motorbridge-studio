@@ -50,7 +50,7 @@ export function MotorCards({
             <div className="motorCardTop motorCardTopNew">
               <span className="chip chipVendor">{VENDOR_LABELS[hit.vendor] || hit.vendor}</span>
               <div className="cardActions">
-                <span className="chip chipId">ESC {toHex(hit.esc_id)}</span>
+                <span className="chip chipId">{t('esc_id')} {toHex(hit.esc_id)}</span>
                 <button
                   className="iconBtn ping"
                   title={t('ping_motor')}

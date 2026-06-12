@@ -90,8 +90,8 @@ can_restart`;
     },
   ];
   const glossaryItems = [
-    { k: 'ESC', v: t('help_glossary_esc') },
-    { k: 'MST', v: t('help_glossary_mst') },
+    { k: 'CAN_ID', v: t('help_glossary_esc') },
+    { k: 'MASTER_ID', v: t('help_glossary_mst') },
     { k: 'Zero', v: t('help_glossary_zero') },
     { k: 'Reset Pose', v: t('help_glossary_reset') },
   ];

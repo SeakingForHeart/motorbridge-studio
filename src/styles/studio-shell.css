@@ -16,19 +16,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 84px;
-  height: 84px;
+  width: 62px;
+  height: 62px;
   position: relative;
-  border-radius: 20px;
-  border: 1px solid #d9e4fb;
-  background:
-    radial-gradient(120% 120% at 100% 0%, rgba(92, 142, 255, 0.22) 0%, rgba(92, 142, 255, 0) 58%),
-    linear-gradient(145deg, #ffffff, #eef4ff 58%, #f9fbff 100%);
-  box-shadow:
-    0 14px 28px rgba(45, 78, 176, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
   flex: 0 0 auto;
-  overflow: hidden;
 }
 
 .heroLogo {
@@ -554,9 +545,8 @@
   }
 
   .heroLogoWrap {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+    width: 52px;
+    height: 52px;
   }
 
   .heroTitleBlock {

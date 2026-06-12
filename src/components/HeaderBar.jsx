@@ -6,7 +6,7 @@ export function HeaderBar() {
   const { t, locale, setLocale } = useI18n();
   const { connected, connText } = useConnectionContext();
   const { setMenuOpen } = useWorkspaceContext();
-  const logoUrl = 'https://www.mouser.ca/images/suppliers/logos/seeed-studio.png';
+  const logoUrl = `${import.meta.env.BASE_URL}seeed-logo.png`;
 
   return (
     <header className="hero">
@@ -16,7 +16,6 @@ export function HeaderBar() {
         </div>
         <div className="heroTitleBlock">
           <h1>{t('app_title')}</h1>
-          <p>{t('app_subtitle')}</p>
         </div>
       </div>
       <div className="heroActions">
