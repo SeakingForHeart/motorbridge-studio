@@ -157,6 +157,22 @@ select {
   background: #fff;
 }
 
+input:disabled,
+select:disabled,
+textarea:disabled {
+  color: #7f8aa8;
+  background: #f1f4fa;
+  border-color: #d7deef;
+  box-shadow: inset 0 0 0 1px rgba(215, 222, 239, 0.55);
+  cursor: not-allowed;
+}
+
+input:disabled::placeholder,
+select:disabled::placeholder,
+textarea:disabled::placeholder {
+  color: #9aa5c3;
+}
+
 input:focus,
 select:focus {
   outline: none;

@@ -80,8 +80,14 @@ describe('utils normalizeControlValue', () => {
     expect(normalizeControlValue('target', '', 1.23)).toBe('');
   });
 
+  it('preserves transient negative numeric text while editing', () => {
+    expect(normalizeControlValue('target', '-', 1.23)).toBe('-');
+    expect(normalizeControlValue('target', '-.', 1.23)).toBe('-.');
+  });
+
   it('still parses numeric control text when present', () => {
     expect(normalizeControlValue('target', '1.23', 0)).toBeCloseTo(1.23);
+    expect(normalizeControlValue('target', '-1.23', 0)).toBeCloseTo(-1.23);
   });
 });
 

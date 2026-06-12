@@ -39,7 +39,93 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('MotorDetailPanel safety confirmations', () => {
+describe('MotorDetailPanel control UI', () => {
+  it('enables the target slider in MIT mode', () => {
+    renderWithStudio(
+      <MotorDetailPanel
+        connected
+        activeMotor={{
+          vendor: 'robstride',
+          model: 'rs-00',
+          esc_id: 1,
+          mst_id: 0xfd,
+          probe: 1,
+          updated_at_ms: Date.now(),
+        }}
+        activeControl={{ mode: 'mit', target: 0, vlim: 1, kp: 30, kd: 1, tau: 0 }}
+        patchControl={vi.fn()}
+        controlMotor={vi.fn()}
+        zeroMotor={vi.fn()}
+        probeMotor={vi.fn()}
+        setIdFor={vi.fn()}
+        verifyHit={vi.fn()}
+        refreshMotorState={vi.fn()}
+        runMotorOp={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('slider').hasAttribute('disabled')).toBe(false);
+  });
+
+  it('shows Target Vel label and disables Vlim in vel mode', () => {
+    const { container } = renderWithStudio(
+      <MotorDetailPanel
+        connected
+        activeMotor={{
+          vendor: 'robstride',
+          model: 'rs-00',
+          esc_id: 1,
+          mst_id: 0xfd,
+          probe: 1,
+          updated_at_ms: Date.now(),
+        }}
+        activeControl={{ mode: 'vel', target: 0, vlim: 1, kp: 30, kd: 1, tau: 0 }}
+        patchControl={vi.fn()}
+        controlMotor={vi.fn()}
+        zeroMotor={vi.fn()}
+        probeMotor={vi.fn()}
+        setIdFor={vi.fn()}
+        verifyHit={vi.fn()}
+        refreshMotorState={vi.fn()}
+        runMotorOp={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Target Vel')).toBeTruthy();
+    const vlimLabel = screen.getByText('Vlim');
+    const vlimInput = vlimLabel.parentElement?.querySelector('input');
+    expect(vlimInput).toBeTruthy();
+    expect(vlimInput?.disabled).toBe(true);
+  });
+
+  it('disables Live Move in MIT mode', () => {
+    renderWithStudio(
+      <MotorDetailPanel
+        connected
+        activeMotor={{
+          vendor: 'robstride',
+          model: 'rs-00',
+          esc_id: 1,
+          mst_id: 0xfd,
+          probe: 1,
+          updated_at_ms: Date.now(),
+        }}
+        activeControl={{ mode: 'mit', target: 0, vlim: 1, kp: 30, kd: 1, tau: 0 }}
+        patchControl={vi.fn()}
+        controlMotor={vi.fn()}
+        zeroMotor={vi.fn()}
+        probeMotor={vi.fn()}
+        setIdFor={vi.fn()}
+        verifyHit={vi.fn()}
+        refreshMotorState={vi.fn()}
+        runMotorOp={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'Live move while dragging' }).disabled).toBe(true);
+    expect(screen.getByText('Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.')).toBeTruthy();
+  });
+
   it('requires a dedicated RobStride parameter write confirmation before sending write_param', async () => {
     const runMotorOp = vi.fn().mockResolvedValue({ ok: true, data: { value: 0 } });
 

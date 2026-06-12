@@ -317,11 +317,15 @@ export const en = {
   tmax: 'TMAX',
   mode: 'Mode',
   target: 'Target',
+  target_pos: 'Target Pos',
+  target_vel: 'Target Vel',
   general_target_slider: 'Target Angle Slider',
   general_target_slider_tip: 'Drag only updates the target value. Click Move to send the command.',
   general_target_slider_live_tip:
     'Live mode is ON: dragging sends throttled pos_vel/force_pos commands.',
-  general_target_slider_disabled: 'Slider is enabled for position modes only: pos_vel / force_pos.',
+  general_target_slider_mit_live_disabled:
+    'Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.',
+  general_target_slider_disabled: 'Slider is enabled for position modes only: mit / pos_vel / force_pos.',
   general_live_move: 'Live move while dragging',
   general_live_move_on: 'Live mode ON',
   general_live_move_off: 'Manual mode',

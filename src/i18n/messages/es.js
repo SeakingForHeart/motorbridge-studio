@@ -324,12 +324,16 @@ export const es = {
   tmax: 'TMAX',
   mode: 'Modo',
   target: 'Objetivo',
+  target_pos: 'Posición objetivo',
+  target_vel: 'Velocidad objetivo',
   general_target_slider: 'Slider de ángulo objetivo',
   general_target_slider_tip: 'Arrastrar solo cambia el objetivo. Pulsa Mover para enviar.',
   general_target_slider_live_tip:
     'Modo en vivo ACTIVADO: arrastrar envía comandos pos_vel/force_pos con throttle.',
+  general_target_slider_mit_live_disabled:
+    'Live Move está deshabilitado en modo MIT por seguridad. Arrastrar solo actualiza el objetivo; pulsa Mover para enviar.',
   general_target_slider_disabled:
-    'El slider solo se habilita en modos de posición: pos_vel / force_pos.',
+    'El slider solo se habilita en modos de posición: mit / pos_vel / force_pos.',
   general_live_move: 'Mover en vivo al arrastrar',
   general_live_move_on: 'Modo en vivo ON',
   general_live_move_off: 'Modo manual',

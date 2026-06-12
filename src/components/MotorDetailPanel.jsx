@@ -33,11 +33,11 @@ function ModeSelect({ modes, value, onChange }) {
   );
 }
 
-function Field({ label, value, onChange }) {
+function Field({ label, value, onChange, disabled = false }) {
   return (
     <div className="field">
       <label>{label}</label>
-      <input value={value} onChange={onChange} />
+      <input value={value} onChange={onChange} disabled={disabled} />
     </div>
   );
 }
@@ -104,14 +104,19 @@ export function MotorDetailPanel({
   const modeOptions = modesForVendor(gatewayCapabilities, vendor);
   const isRobstridePosVel = vendor === 'robstride' && activeControl?.mode === 'pos_vel';
   const positionSliderEnabled =
-    activeControl?.mode === 'pos_vel' || activeControl?.mode === 'force_pos';
+    activeControl?.mode === 'mit' ||
+    activeControl?.mode === 'pos_vel' ||
+    activeControl?.mode === 'force_pos';
+  const liveMoveSupported = activeControl?.mode === 'pos_vel' || activeControl?.mode === 'force_pos';
   const liveSliderEnabled =
-    Boolean(uiPrefs?.generalSliderLiveMove) && positionSliderEnabled && connected;
+    Boolean(uiPrefs?.generalSliderLiveMove) && liveMoveSupported && connected;
   const sliderBounds = positionSliderBounds();
   const sliderTarget = Math.max(
     sliderBounds.min,
     Math.min(sliderBounds.max, Number(activeControl?.target) || 0)
   );
+  const targetLabelKey = activeControl?.mode === 'vel' ? 'target_vel' : 'target_pos';
+  const vlimDisabled = activeControl?.mode === 'vel';
   const rsParamIdNum = parseNum(rsParamId, Number.NaN);
   const selectedRobstrideParam = React.useMemo(
     () => ROBSTRIDE_PARAM_CATALOG.find((x) => Number(x.id) === Number(rsParamIdNum)) || null,
@@ -395,7 +400,7 @@ export function MotorDetailPanel({
           <ModeSelect modes={modeOptions} value={activeControl.mode} onChange={patch('mode')} />
         </div>
         <Field
-          label={t('target')}
+          label={t(targetLabelKey)}
           value={controlInputValue(activeControl.target)}
           onChange={patchNumber('target')}
         />
@@ -403,6 +408,7 @@ export function MotorDetailPanel({
           label={t('vlim')}
           value={controlInputValue(activeControl.vlim)}
           onChange={patchNumber('vlim')}
+          disabled={vlimDisabled}
         />
         <Field
           label={t('kp')}
@@ -465,8 +471,8 @@ export function MotorDetailPanel({
           <label className="checkWrap">
             <input
               type="checkbox"
-              checked={Boolean(uiPrefs?.generalSliderLiveMove)}
-              disabled={!positionSliderEnabled}
+              checked={Boolean(uiPrefs?.generalSliderLiveMove) && liveMoveSupported}
+              disabled={!liveMoveSupported}
               onChange={(e) => setUiPref('generalSliderLiveMove', e.target.checked)}
             />
             <span>{t('general_live_move')}</span>
@@ -476,9 +482,11 @@ export function MotorDetailPanel({
         <div className="tip">
           {!positionSliderEnabled
             ? t('general_target_slider_disabled')
-            : liveSliderEnabled
-              ? t('general_target_slider_live_tip')
-              : t('general_target_slider_tip')}
+            : !liveMoveSupported
+              ? t('general_target_slider_mit_live_disabled')
+              : liveSliderEnabled
+                ? t('general_target_slider_live_tip')
+                : t('general_target_slider_tip')}
         </div>
       </div>
 

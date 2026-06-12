@@ -21,7 +21,11 @@ export const NUMERIC_CONTROL_FIELDS = new Set(['target', 'vlim', 'kp', 'kd', 'ta
 
 export function normalizeControlValue(field, value, fallback = 0) {
   if (!NUMERIC_CONTROL_FIELDS.has(field)) return value;
-  if (typeof value === 'string' && value.trim() === '') return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return '';
+    if (trimmed === '-' || trimmed === '.' || trimmed === '-.') return trimmed;
+  }
   return parseNum(value, fallback);
 }
 
