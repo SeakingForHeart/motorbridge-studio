@@ -24,6 +24,7 @@ export function MotorSection() {
     activeControl,
   } = useScanContext();
   const {
+    controls,
     patchControl,
     controlMotor,
     zeroMotor,
@@ -107,6 +108,7 @@ export function MotorSection() {
               probeMotor={probeMotor}
               zeroMotor={zeroMotor}
               refreshMotorState={refreshMotorState}
+              controls={controls}
             />
 
             <div className="motorPanel">

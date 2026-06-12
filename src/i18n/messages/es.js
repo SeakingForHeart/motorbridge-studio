@@ -306,6 +306,8 @@ export const es = {
   online: 'en línea',
   offline: 'fuera de línea',
   online_unknown: 'en línea/desconocido',
+  enabled: 'habilitado',
+  disabled: 'deshabilitado',
 
   mst: 'MASTER_ID',
   probe: 'Sonda',

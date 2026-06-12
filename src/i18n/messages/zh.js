@@ -286,6 +286,8 @@ export const zh = {
   online: '在线',
   offline: '离线',
   online_unknown: '在线/未知',
+  enabled: '使能',
+  disabled: '失能',
 
   mst: 'MASTER_ID',
   probe: '探测',

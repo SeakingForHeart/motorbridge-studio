@@ -33,9 +33,14 @@ export function JointList({
               <strong>
                 {t('joint')} {row.joint}
               </strong>
-              <span className={`chip ${row.hit.online === false ? '' : 'chipOk'}`}>
-                {row.hit.online === false ? t('offline') : t('online_unknown')}
-              </span>
+              <div className="row" style={{ gap: 6 }}>
+                <span className={`chip ${row.hit.online === false ? '' : 'chipOk'}`}>
+                  {row.hit.online === false ? t('offline') : t('online_unknown')}
+                </span>
+                <span className={`chip ${row.control.enabled ? 'chipOk' : ''}`}>
+                  {row.control.enabled ? t('enabled') : t('disabled')}
+                </span>
+              </div>
             </div>
             <div className="armMeta">
               <span>{t('esc_id')} {toHex(row.hit.esc_id)}</span>

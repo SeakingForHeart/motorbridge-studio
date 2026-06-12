@@ -299,6 +299,8 @@ export const en = {
   online: 'online',
   offline: 'offline',
   online_unknown: 'online/unknown',
+  enabled: 'enabled',
+  disabled: 'disabled',
 
   mst: 'MASTER_ID',
   probe: 'Probe',

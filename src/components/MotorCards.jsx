@@ -1,6 +1,6 @@
 import React from 'react';
 import { VENDOR_LABELS } from '../lib/constants';
-import { formatLocal, motorKey, scanSummary, toHex } from '../lib/utils';
+import { formatLocal, motorKey, normalizeControlForHit, scanSummary, toHex } from '../lib/utils';
 import { useI18n } from '../i18n';
 
 export function MotorCards({
@@ -15,6 +15,7 @@ export function MotorCards({
   probeMotor,
   zeroMotor,
   refreshMotorState,
+  controls,
 }) {
   const { t } = useI18n();
   const onDragStart = (e, key) => {
@@ -34,6 +35,7 @@ export function MotorCards({
       {hits.map((hit) => {
         const key = motorKey(hit);
         const isActive = key === activeMotorKey;
+        const control = normalizeControlForHit(hit, controls[key]);
         return (
           <button
             key={key}
@@ -82,8 +84,13 @@ export function MotorCards({
               </div>
             </div>
             <div className="motorSignal">
-              <span className={`dotLive ${hit.online === false ? 'off' : ''}`} />
-              <span className="signalText">{hit.online === false ? t('offline') : t('online_unknown')}</span>
+              <div className="motorOnlineBadge">
+                <span className={`dotLive ${hit.online === false ? 'off' : ''}`} />
+                <span className="signalText">{hit.online === false ? t('offline') : t('online_unknown')}</span>
+              </div>
+              <span className={`chip ${control.enabled ? 'chipOk' : ''}`}>
+                {control.enabled ? t('enabled') : t('disabled')}
+              </span>
             </div>
             <div className="motorMeta"><strong>{t('mst')}</strong> {toHex(hit.mst_id)} | <strong>{t('probe')}</strong> {toHex(hit.probe)}</div>
             <div className="motorMeta"><strong>{t('model')}</strong> {hit.model_guess || hit.model || '-'}</div>
