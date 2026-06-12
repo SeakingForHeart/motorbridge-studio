@@ -50,11 +50,16 @@ export function JointControlPanel({
   const tauDisabled = mode !== 'mit';
   const kpDisabled = mode !== 'mit';
   const kdDisabled = mode !== 'mit';
+  const positionSliderEnabled = mode === 'mit' || mode === 'pos_vel' || mode === 'force_pos';
+  const liveMoveSupported = mode === 'pos_vel' || mode === 'force_pos';
+  const effectiveLiveMove = liveMoveSupported && liveMove;
+  const targetLabelKey = mode === 'vel' ? 'target_vel' : 'target_pos';
   const patchNumber = (field) => (e) => {
     patchControl(activeRow.key, {
       [field]: e.target.value,
     });
   };
+  const targetInputLabel = t(targetLabelKey);
   return (
     <div className="armControlPanel">
       <div className="sectionTitle armPaneTitle">
@@ -116,8 +121,9 @@ export function JointControlPanel({
           />
         </div>
         <div className="field">
-          <label>{t('target')}</label>
+          <label>{targetInputLabel}</label>
           <input
+            aria-label={targetInputLabel}
             value={controlInputValue(activeRow.control.target)}
             onChange={(e) => onSliderTargetChange(e.target.value)}
           />
@@ -134,19 +140,20 @@ export function JointControlPanel({
           max={String(jointLimit(activeRow.joint).max)}
           step="0.01"
           value={sliderValue}
+          disabled={!positionSliderEnabled}
           onChange={(e) => onSliderTargetChange(e.target.value)}
         />
         <div className="armSliderMeta">
           <label className="armLiveToggle">
             <input
               type="checkbox"
-              checked={liveMove}
-              disabled={perJointBusy || mode === 'mit'}
+              checked={effectiveLiveMove}
+              disabled={perJointBusy || !liveMoveSupported}
               onChange={(e) => setUiPref('armSliderLiveMove', e.target.checked)}
             />
             <span>{t('arm_live_move')}</span>
           </label>
-          <span>{liveMove ? t('arm_live_move_on') : t('arm_live_move_off')}</span>
+          <span>{effectiveLiveMove ? t('arm_live_move_on') : t('arm_live_move_off')}</span>
         </div>
         <div className="armSliderMeta">
           <span>
@@ -154,12 +161,18 @@ export function JointControlPanel({
             {jointLimit(activeRow.joint).max.toFixed(2)}
           </span>
           <input
+            aria-label={t('arm_pos_slider')}
             className="armPosInput"
             value={controlInputValue(activeRow.control.target)}
-            disabled={perJointBusy}
+            disabled={perJointBusy || !positionSliderEnabled}
             onChange={(e) => onSliderTargetChange(e.target.value)}
           />
         </div>
+        {!positionSliderEnabled ? (
+          <div className="tip">{t('general_target_slider_disabled')}</div>
+        ) : !liveMoveSupported ? (
+          <div className="tip">{t('general_target_slider_mit_live_disabled')}</div>
+        ) : null}
         {limitWarn && <div className="tip warnText">{limitWarn}</div>}
         {vendor === 'damiao' &&
           Number(activeRow.joint) === 7 &&

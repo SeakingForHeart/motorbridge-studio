@@ -1,6 +1,6 @@
 import React from 'react';
 import { useI18n } from '../../../i18n';
-import { parseNum } from '../../../lib/utils';
+import { normalizeControlValue, parseNum } from '../../../lib/utils';
 import { clampByLimit, jointLimit } from './armMotionUtils';
 
 export function LiveMoveScheduler({
@@ -176,7 +176,9 @@ export function LiveMoveScheduler({
   const onSliderTargetChange = React.useCallback(
     (targetText) => {
       if (!activeRow) return;
-      patchControl(activeRow.key, { target: parseNum(targetText, activeRow.control?.target ?? 0) });
+      patchControl(activeRow.key, {
+        target: normalizeControlValue('target', targetText, activeRow.control?.target ?? 0),
+      });
       scheduleLiveMove(activeRow, targetText);
     },
     [activeRow, patchControl, scheduleLiveMove]
