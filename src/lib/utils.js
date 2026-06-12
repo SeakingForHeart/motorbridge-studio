@@ -25,6 +25,7 @@ export function normalizeControlValue(field, value, fallback = 0) {
     const trimmed = value.trim();
     if (trimmed === '') return '';
     if (trimmed === '-' || trimmed === '.' || trimmed === '-.') return trimmed;
+    if (/^-?\d+\.$/.test(trimmed)) return trimmed;
   }
   return parseNum(value, fallback);
 }

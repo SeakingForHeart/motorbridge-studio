@@ -85,6 +85,13 @@ describe('utils normalizeControlValue', () => {
     expect(normalizeControlValue('target', '-.', 1.23)).toBe('-.');
   });
 
+  it('preserves trailing decimal text while editing', () => {
+    expect(normalizeControlValue('vlim', '1.', 0)).toBe('1.');
+    expect(normalizeControlValue('kp', '12.', 0)).toBe('12.');
+    expect(normalizeControlValue('kd', '-0.', 0)).toBe('-0.');
+    expect(normalizeControlValue('tau', '0.', 0)).toBe('0.');
+  });
+
   it('still parses numeric control text when present', () => {
     expect(normalizeControlValue('target', '1.23', 0)).toBeCloseTo(1.23);
     expect(normalizeControlValue('target', '-1.23', 0)).toBeCloseTo(-1.23);
