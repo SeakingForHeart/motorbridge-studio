@@ -13,12 +13,14 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { useMotorStudio } from './hooks/useMotorStudio';
 import { MotorStudioProvider } from './hooks/useMotorStudioContext';
 import { useI18n } from './i18n';
+import appPackage from '../package.json';
 
 export default function App() {
   const { t } = useI18n();
   const studio = useMotorStudio();
   const [page, setPage] = React.useState('general');
   const [helpOpen, setHelpOpen] = React.useState(false);
+  const version = `v${appPackage.version}`;
 
   const pathParts = String(window.location.pathname || '/')
     .split('/')
@@ -80,6 +82,7 @@ export default function App() {
         )}
 
         <StateLogsPanel />
+        <div className="appFooterMeta">{version}</div>
       </div>
     </MotorStudioProvider>
   );

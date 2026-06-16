@@ -376,6 +376,14 @@
   max-width: 260px;
 }
 
+.appFooterMeta {
+  margin-top: 10px;
+  text-align: right;
+  color: #7a8298;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .helpPanel {
   margin-top: 10px;
   border: 1px solid #d9e2fb;
