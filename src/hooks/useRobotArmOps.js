@@ -96,6 +96,21 @@ export function useRobotArmOps({
     }
   };
 
+  const damiaoModeName = (modeValue) => {
+    switch (Math.round(Number(modeValue) || 0)) {
+      case 1:
+        return 'mit';
+      case 2:
+        return 'pos_vel';
+      case 3:
+        return 'vel';
+      case 4:
+        return 'force_pos';
+      default:
+        return null;
+    }
+  };
+
   const writeDamiaoControlParams = async (
     h,
     values,
@@ -108,18 +123,32 @@ export function useRobotArmOps({
       enableStreams: false,
     });
     try {
+      const modeValue = Object.prototype.hasOwnProperty.call(values, 'ctrlMode')
+        ? Math.round(Number(values.ctrlMode) || 0)
+        : null;
+      const modeName = modeValue == null ? null : damiaoModeName(modeValue);
+
       for (const def of writeDefs) {
-        if (!(def.key in values)) continue;
+        if (def.key === 'ctrlMode' || !(def.key in values)) continue;
         const op = def.dataType === 'u32' ? 'write_register_u32' : 'write_register_f32';
         const value =
           def.dataType === 'u32'
             ? Math.round(Number(values[def.key]) || 0)
             : Number(values[def.key]) || 0;
-        const ret = await sendCmd(op, { rid: def.rid, verify: false, value }, 3000);
+        const ret = await sendCmd(op, { rid: def.rid, verify: true, value }, 3000);
         if (!ret?.ok) throw new Error(ret?.error || `${op} failed`);
       }
 
+      if (modeName) {
+        pushLog(`ensuring Damiao ctrlMode ${modeName}...`, 'info');
+        const ret = await sendCmd('ensure_mode', { mode: modeName, timeout_ms: 2000 }, 3000);
+        if (!ret?.ok) throw new Error(ret?.error || 'ensure_mode failed');
+      } else if (modeValue != null) {
+        throw new Error(`unsupported Damiao ctrlMode: ${modeValue}`);
+      }
+
       if (store) {
+        pushLog('storing parameters...', 'info');
         const stored = await sendCmd('store_parameters', { vendor: h.vendor }, 4000);
         if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
       }
