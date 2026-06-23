@@ -149,7 +149,7 @@ export function useRobotArmOps({
 
       if (store) {
         pushLog('storing parameters...', 'info');
-        const stored = await sendCmd('store_parameters', { vendor: h.vendor }, 4000);
+        const stored = await sendCmd('store_parameters', { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id }, 4000);
         if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
       }
     } finally {
@@ -208,7 +208,7 @@ export function useRobotArmOps({
       }
 
       if (store) {
-        const stored = await sendCmd('store_parameters', { vendor: h.vendor }, 4000);
+        const stored = await sendCmd('store_parameters', { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id }, 4000);
         if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
       }
     } finally {

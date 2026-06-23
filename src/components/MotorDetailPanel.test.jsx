@@ -126,6 +126,42 @@ describe('MotorDetailPanel control UI', () => {
     expect(screen.getByText('Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.')).toBeTruthy();
   });
 
+  it('calls enable with only the active motor', async () => {
+    const controlMotor = vi.fn().mockResolvedValue(true);
+
+    renderWithStudio(
+      <MotorDetailPanel
+        connected
+        activeMotor={{
+          vendor: 'robstride',
+          model: 'rs-00',
+          esc_id: 1,
+          mst_id: 0xfd,
+          probe: 1,
+          updated_at_ms: Date.now(),
+        }}
+        activeControl={{ mode: 'mit', target: 0, vlim: 1, kp: 30, kd: 1, tau: 0 }}
+        patchControl={vi.fn()}
+        controlMotor={controlMotor}
+        zeroMotor={vi.fn()}
+        probeMotor={vi.fn()}
+        setIdFor={vi.fn()}
+        verifyHit={vi.fn()}
+        refreshMotorState={vi.fn()}
+        runMotorOp={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable' }));
+
+    await waitFor(() => {
+      expect(controlMotor).toHaveBeenCalledWith(
+        expect.objectContaining({ vendor: 'robstride', esc_id: 1, mst_id: 0xfd }),
+        'enable'
+      );
+    });
+  });
+
   it('requires a dedicated RobStride parameter write confirmation before sending write_param', async () => {
     const runMotorOp = vi.fn().mockResolvedValue({ ok: true, data: { value: 0 } });
 

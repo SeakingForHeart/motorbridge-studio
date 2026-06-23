@@ -421,7 +421,11 @@ export async function controlMotorOp({
       action === 'stop' ||
       action === 'clear_error'
     ) {
-      const ret = await sendCmd(action, { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
+      const ret = await sendCmd(
+        action,
+        { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+        CMD_TIMEOUTS.controlMs
+      );
       if (!ret.ok) throw new Error(ret.error || `${action} failed`);
       pushLog(`${action} ${h.vendor} ${toHex(h.esc_id)} ok`, 'ok');
       if (action === 'enable' || action === 'disable') {
@@ -546,7 +550,11 @@ export async function zeroMotorOp({
 
     if (isRobstride) {
       // RobStride zeroing is more reliable in disabled state.
-      const disableRet = await sendCmd('disable', { vendor: h.vendor }, CMD_TIMEOUTS.controlMs);
+      const disableRet = await sendCmd(
+        'disable',
+        { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+        CMD_TIMEOUTS.controlMs
+      );
       if (!disableRet.ok) {
         pushLog(
           `zero ${h.vendor} ${toHex(h.esc_id)} pre-disable failed: ${disableRet.error || 'unknown'}`,
@@ -558,7 +566,7 @@ export async function zeroMotorOp({
 
     const zeroRet = await sendCmd(
       'set_zero_position',
-      { vendor: h.vendor },
+      { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
       CMD_TIMEOUTS.controlMs
     );
     if (!zeroRet.ok) throw new Error(zeroRet.error || 'set_zero_position failed');
@@ -568,7 +576,7 @@ export async function zeroMotorOp({
 
     const storeRet = await sendCmd(
       'store_parameters',
-      { vendor: h.vendor },
+      { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
       CMD_TIMEOUTS.controlMs
     );
     if (!storeRet.ok) {
@@ -581,7 +589,11 @@ export async function zeroMotorOp({
     }
     if (isRobstride) {
       await sleepMs(120);
-      const verifyState = await sendCmd('state_once', {}, CMD_TIMEOUTS.stateMs);
+      const verifyState = await sendCmd(
+        'state_once',
+        { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+        CMD_TIMEOUTS.stateMs
+      );
       if (!verifyState.ok) {
         pushLog(
           `zero ${h.vendor} ${toHex(h.esc_id)} done, but post-state failed: ${verifyState.error || 'unknown'}`,
@@ -612,7 +624,11 @@ export async function zeroMotorOp({
 export async function refreshMotorStateOp({ h, vendors, setTargetFor, sendCmd, setHits, pushLog }) {
   try {
     await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
-    const ret = await sendCmd('state_once', {}, CMD_TIMEOUTS.stateMs);
+    const ret = await sendCmd(
+      'state_once',
+      { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+      CMD_TIMEOUTS.stateMs
+    );
     if (!ret.ok) throw new Error(ret.error || 'state_once failed');
 
     const damiaoParamPatch = {};
@@ -673,7 +689,11 @@ export async function checkOnlineOnceOp({
 }) {
   try {
     await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id);
-    const ret = await sendCmd('state_once', {}, 1200);
+    const ret = await sendCmd(
+      'state_once',
+      { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+      1200
+    );
     if (!ret.ok) throw new Error(ret.error || 'state_once failed');
 
     setHits((prev) => mergeHitsByVendor(prev, [mapResponseToHit(h, ret.data)]));
