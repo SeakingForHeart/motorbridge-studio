@@ -37,7 +37,7 @@ describe('motor studio ops', () => {
 
   it('maps RobStride observation params into live feedback fields', () => {
     const next = mapParamStreamToHit(
-      { vendor: 'robstride', pos: 0, vel: 0, torq: 0 },
+      { vendor: 'robstride', pos: 0, vel: 0, torq: 0, status_name: 'Motor' },
       {
         vendor: 'robstride',
         values: {
@@ -58,7 +58,9 @@ describe('motor studio ops', () => {
     expect(next.torq).toBeCloseTo(0.08);
     expect(next.vbus).toBeCloseTo(24.1);
     expect(next.t_mos).toBeUndefined();
-    expect(next.status_name).toBe('Position');
+    expect(next.status_name).toBe('Motor');
+    expect(next.run_mode).toBe(1);
+    expect(next.run_mode_name).toBe('Position');
     expect(next.feedback_source).toBe('robstride_observation_params');
   });
 

@@ -59,7 +59,7 @@ function preserveParamStreamFields(hit, next) {
   if (!hit?.param_stream_values) return next;
   const preservedKeys =
     String(hit.vendor) === 'robstride'
-      ? ['pos', 'vel', 'torq', 'iqf', 'vbus', 'status', 'status_name', 'feedback_source']
+      ? ['pos', 'vel', 'torq', 'iqf', 'vbus', 'run_mode', 'run_mode_name', 'feedback_source']
       : String(hit.vendor) === 'damiao'
         ? ['motor_pos', 'output_pos', 'vbus', 'status', 'pmax', 'vmax', 'tmax']
         : [];

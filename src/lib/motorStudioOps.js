@@ -135,8 +135,10 @@ export function mapParamStreamToHit(h, data) {
     if (Number.isFinite(temp) && temp > 0) patch.t_mos = temp;
     if (Number.isFinite(runMode)) {
       const names = { 0: 'MIT', 1: 'Position', 2: 'Velocity', 3: 'Current', 5: 'CSP' };
-      patch.status = runMode;
-      patch.status_name = names[runMode] || `run_mode=${runMode}`;
+      // Keep status/status_name from ws state feedback (motor state),
+      // and expose control run mode separately for diagnostics.
+      patch.run_mode = runMode;
+      patch.run_mode_name = names[runMode] || `run_mode=${runMode}`;
     }
   } else if (vendor === 'damiao') {
     const pMotor = numberFrom('p_m');
@@ -201,8 +203,7 @@ async function readRobstrideStateParams(sendCmd) {
       3: 'Current',
       5: 'CSP',
     };
-    patch.status = patch.run_mode;
-    patch.status_name = names[patch.run_mode] || `run_mode=${patch.run_mode}`;
+    patch.run_mode_name = names[patch.run_mode] || `run_mode=${patch.run_mode}`;
   }
   return patch;
 }
