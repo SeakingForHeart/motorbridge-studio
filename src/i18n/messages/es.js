@@ -99,10 +99,8 @@ export const es = {
     'Coloque manualmente las 7 articulaciones en una postura mecánica segura, sin interferencias.',
   arm_first_use_step_2: 'Pulse "Escanear todas" para confirmar estado en línea.',
   arm_first_use_step_3:
-    'Pulse "Habilitar todas", luego "Volver a cero mecánico", y espere estabilización.',
-  arm_first_use_step_4:
     'Tras confirmar postura correcta, ejecute "Calibrar cero todas" (con confirmaciones).',
-  arm_first_use_step_5:
+  arm_first_use_step_4:
     'Después, use "Leer parámetros" para registrar; si hay anomalías, vuelva a cero y recalibre.',
   arm_prepare_cards: 'Preparar 7 tarjetas',
   arm_scan_all: 'Escanear todas',

@@ -99,10 +99,9 @@ export const en = {
   arm_first_use_step_1:
     'Manually place all 7 joints at a safe initial mechanical posture with no collision risk.',
   arm_first_use_step_2: 'Click "Scan All Joints" to confirm online status.',
-  arm_first_use_step_3: 'Click "Enable All", then "Reset Pose", and wait until joints settle.',
-  arm_first_use_step_4:
+  arm_first_use_step_3:
     'After confirming pose is correct, run "Zero All" (multi-step safety confirmations).',
-  arm_first_use_step_5:
+  arm_first_use_step_4:
     'Then "Read Params" for record; if abnormal later, reset pose before recalibration.',
   arm_prepare_cards: 'Prepare 7 Cards',
   arm_scan_all: 'Scan All Joints',

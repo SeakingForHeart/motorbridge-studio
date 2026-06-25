@@ -38,7 +38,6 @@ function FirstUseDialog({ open, onClose }) {
           <li>{t('arm_first_use_step_2')}</li>
           <li>{t('arm_first_use_step_3')}</li>
           <li>{t('arm_first_use_step_4')}</li>
-          <li>{t('arm_first_use_step_5')}</li>
         </ol>
         <div className="row toolbar compactToolbar">
           <button className="ghostBtn" onClick={onClose}>
