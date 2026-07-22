@@ -8,7 +8,7 @@
 
 ## 配套仓库
 
-- `motorbridge`：https://github.com/tianrking/motorbridge
+- `motorbridge`：https://github.com/motorbridge/motorbridge
   提供核心运行时、`motor_cli`、bindings、`ws_gateway` 与 `tools/reliability`。
 
 ## 1）安装依赖

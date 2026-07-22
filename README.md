@@ -8,7 +8,7 @@ WebSocket-based motor control studio UI (frontend only).
 
 ## Companion Repo
 
-- `motorbridge`: https://github.com/tianrking/motorbridge
+- `motorbridge`: https://github.com/motorbridge/motorbridge
   Core runtime, `motor_cli`, bindings, `ws_gateway`, and `tools/reliability`.
 
 ## 1) Install Prerequisites
