@@ -97,12 +97,14 @@ export const en = {
   arm_first_use_intro:
     'For first power-on, follow these steps to make zero/limit baseline reliable:',
   arm_first_use_step_1:
+    'On the left, select the matching model under "Arm Model" based on your actual arm.',
+  arm_first_use_step_2:
     'Manually place all 7 joints at a safe initial mechanical posture with no collision risk.',
-  arm_first_use_step_2: 'Click "Scan All Joints" to confirm online status.',
-  arm_first_use_step_3:
-    'After confirming pose is correct, run "Zero All" (multi-step safety confirmations).',
+  arm_first_use_step_3: 'Click "Scan All Joints" to confirm online status.',
   arm_first_use_step_4:
-    'Then "Read Params" for record; if abnormal later, reset pose before recalibration.',
+    'After confirming pose is correct, run "Zero All" (multi-step safety confirmations).',
+  arm_first_use_step_5:
+    'Then "Read Params" for record; apply the default template and "Write Params" to write the default parameters. If abnormal later, reset to mechanical zero before recalibration.',
   arm_prepare_cards: 'Prepare 7 Cards',
   arm_scan_all: 'Scan All Joints',
   arm_self_check: 'One-click Self-check',

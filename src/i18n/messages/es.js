@@ -96,12 +96,14 @@ export const es = {
   arm_first_use_intro:
     'En el primer uso, siga estos pasos para asegurar una base fiable de cero/límites:',
   arm_first_use_step_1:
+    'A la izquierda, seleccione el modelo correspondiente en "Modelo de brazo" según su brazo real.',
+  arm_first_use_step_2:
     'Coloque manualmente las 7 articulaciones en una postura mecánica segura, sin interferencias.',
-  arm_first_use_step_2: 'Pulse "Escanear todas" para confirmar estado en línea.',
-  arm_first_use_step_3:
-    'Tras confirmar postura correcta, ejecute "Calibrar cero todas" (con confirmaciones).',
+  arm_first_use_step_3: 'Pulse "Escanear todas" para confirmar estado en línea.',
   arm_first_use_step_4:
-    'Después, use "Leer parámetros" para registrar; si hay anomalías, vuelva a cero y recalibre.',
+    'Tras confirmar postura correcta, ejecute "Calibrar cero todas" (con confirmaciones).',
+  arm_first_use_step_5:
+    'Después, use "Leer parámetros" para registrar; luego aplique la plantilla predeterminada y "Escribir parámetros" para escribir los parámetros predeterminados. Si hay anomalías después, vuelva al cero mecánico antes de recalibrar.',
   arm_prepare_cards: 'Preparar 7 tarjetas',
   arm_scan_all: 'Escanear todas',
   arm_self_check: 'Autochequeo',
