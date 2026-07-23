@@ -7,7 +7,9 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import URDFLoader from 'urdf-loader';
 
 const ARM02_PACKAGE_PATH = `${import.meta.env.BASE_URL}resources/arm02/reBot_B601_DM_with_gripper`;
-const URDF_PATH = `${ARM02_PACKAGE_PATH}/urdf/reBot_B601_DM_with_gripper.urdf`;
+const ARM02_URDF_PATH = `${ARM02_PACKAGE_PATH}/urdf/reBot_B601_DM_with_gripper.urdf`;
+const ARM03_PACKAGE_PATH = `${import.meta.env.BASE_URL}resources/arm03/reBot_Lite_RS_with_gripper`;
+const ARM03_URDF_PATH = `${ARM03_PACKAGE_PATH}/urdf/reBot_Lite_RS_with_gripper.urdf`;
 const GRIPPER_MAX_OPEN_M = 0.0515;
 
 function normalizeArm02JointTargets(map) {
@@ -24,6 +26,50 @@ function normalizeArm02JointTargets(map) {
   }
   return next;
 }
+
+// Robstride (arm03) variant: 6 revolute joints (joint1..6) + two prismatic
+// gripper fingers (joint_left / joint_right). There is no joint7 in the URDF.
+// The gripper opening (already a metric value in meters, written by the page
+// as gripper_joint1) is fed directly to both fingers without limit-based
+// normalization — left and right share the same metric value.
+// Idempotent: only transforms maps that still carry the raw `gripper_joint1`
+// marker. An already-normalized map (gripper_joint1 removed, joint_left/right
+// present) is returned untouched. This is required because smoothStepTrajectory
+// re-normalizes targetRef.current each frame — a non-idempotent second pass
+// would see no gripper_joint1 and reset the fingers to 0.
+function normalizeArm03JointTargets(map) {
+  if (!map || typeof map !== 'object') return map;
+  if (map.gripper_joint1 === undefined) return map;
+  const next = { ...map };
+  const opening = Number.isFinite(Number(next.gripper_joint1))
+    ? Number(next.gripper_joint1)
+    : 0;
+  next.joint_left = opening;
+  next.joint_right = opening;
+  delete next.joint7; // no such joint in the rs URDF
+  delete next.gripper_joint1; // rs uses joint_left / joint_right
+  delete next.gripper_joint2;
+  return next;
+}
+
+// Per-profile model chain: package path, URDF path, mesh package name and the
+// joint-target normalizer that bridges the shared control map to this URDF.
+const PROFILE_MODELS = {
+  damiao: {
+    packagePath: ARM02_PACKAGE_PATH,
+    urdfPath: ARM02_URDF_PATH,
+    packageName: 'reBot_B601_DM_with_gripper',
+    endEffectorLink: 'end_link',
+    normalize: normalizeArm02JointTargets,
+  },
+  robstride: {
+    packagePath: ARM03_PACKAGE_PATH,
+    urdfPath: ARM03_URDF_PATH,
+    packageName: 'reBot_Lite_RS_with_gripper',
+    endEffectorLink: 'gripper_end',
+    normalize: normalizeArm03JointTargets,
+  },
+};
 const DEFAULT_CAMERA_POS = new THREE.Vector3(1.15, 0.95, 1.2);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0.35, 0);
 const TRAIL_MAX_POINTS = 1200;
@@ -139,6 +185,7 @@ function makeWaypointLabelSprite(text, color) {
 
 export function ArmUrdfViewer({
   jointTargets,
+  profile = 'damiao',
   resetViewSeq = 0,
   clearTrailSeq = 0,
   exportTrailSeq = 0,
@@ -206,6 +253,17 @@ export function ArmUrdfViewer({
   const dragStartRef = React.useRef(null);
   const [status, setStatus] = React.useState('loading');
 
+  // Per-profile model chain (URDF path / package / normalizer / end-effector).
+  const modelCfg = PROFILE_MODELS[profile] || PROFILE_MODELS.damiao;
+  // Ref so stable useCallbacks/effect closures always read the live normalizer
+  // for the current profile without churning their identities.
+  const normalizeRef = React.useRef(modelCfg.normalize);
+  const endEffectorLinkRef = React.useRef(modelCfg.endEffectorLink);
+  React.useEffect(() => {
+    normalizeRef.current = modelCfg.normalize;
+    endEffectorLinkRef.current = modelCfg.endEffectorLink;
+  }, [modelCfg.normalize, modelCfg.endEffectorLink]);
+
   React.useEffect(() => {
     onReplayStateChangeRef.current = onReplayStateChange;
   }, [onReplayStateChange]);
@@ -267,7 +325,7 @@ export function ArmUrdfViewer({
   const applyJointMap = React.useCallback((map) => {
     const robot = robotRef.current;
     if (!robot?.joints || !map || typeof map !== 'object') return;
-    const normalizedMap = normalizeArm02JointTargets(map);
+    const normalizedMap = normalizeRef.current(map);
     const nextAnim = { ...animJointRef.current };
     Object.entries(normalizedMap).forEach(([jointName, targetRaw]) => {
       const target = Number(targetRaw);
@@ -518,7 +576,7 @@ export function ArmUrdfViewer({
   }, [replayFinishSeq, applyJointMap, pushTrailPoint, setReplayBusy]);
 
   React.useEffect(() => {
-    targetRef.current = normalizeArm02JointTargets(jointTargets || {});
+    targetRef.current = normalizeRef.current(jointTargets || {});
     if (modeRef.current !== 'direct') return;
     const robot = robotRef.current;
     if (!robot) return;
@@ -659,6 +717,8 @@ export function ArmUrdfViewer({
   React.useEffect(() => {
     const host = hostRef.current;
     if (!host) return undefined;
+    // Re-init the whole scene when the profile (model) changes.
+    setStatus('loading');
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -886,9 +946,9 @@ export function ArmUrdfViewer({
     trailHeadRef.current = trailHead;
 
     const loader = new URDFLoader();
-    loader.packages = { reBot_B601_DM_with_gripper: ARM02_PACKAGE_PATH };
+    loader.packages = { [modelCfg.packageName]: modelCfg.packagePath };
     loader.load(
-      URDF_PATH,
+      modelCfg.urdfPath,
       (robot) => {
         // ROS URDF is typically Z-up; this viewer uses Y-up.
         // Rotate to keep the base plate downward and the arm upright on the ground grid.
@@ -897,6 +957,7 @@ export function ArmUrdfViewer({
         scene.add(robot);
         robotRef.current = robot;
         endEffectorRef.current =
+          robot.links?.[endEffectorLinkRef.current] ||
           robot.links?.end_link ||
           robot.links?.link6 ||
           robot.links?.tool0 ||
@@ -916,7 +977,7 @@ export function ArmUrdfViewer({
         }
         if (robot?.joints) {
           const next = {};
-          Object.entries(normalizeArm02JointTargets(targetRef.current || {})).forEach(([jointName, targetRaw]) => {
+          Object.entries(normalizeRef.current(targetRef.current || {})).forEach(([jointName, targetRaw]) => {
             const target = Number(targetRaw);
             if (!Number.isFinite(target)) return;
             const j = robot.joints?.[jointName];
@@ -943,7 +1004,7 @@ export function ArmUrdfViewer({
       const robot = robotRef.current;
       if (!robot?.joints) return;
       const targets = targetRef.current || {};
-      const normalizedTargets = normalizeArm02JointTargets(targets);
+      const normalizedTargets = normalizeRef.current(targets);
       const nextState = { ...animJointRef.current };
       Object.entries(normalizedTargets).forEach(([jointName, targetRaw]) => {
         const target = Number(targetRaw);
@@ -1160,6 +1221,10 @@ export function ArmUrdfViewer({
       setReplayBusy(false);
     };
   }, [
+    profile,
+    modelCfg.packageName,
+    modelCfg.packagePath,
+    modelCfg.urdfPath,
     pushTrailPoint,
     clearTrail,
     applyTrajectoryColor,

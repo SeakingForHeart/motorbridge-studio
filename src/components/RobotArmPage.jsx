@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n';
-import { ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD, jointLimitsForProfile } from '../lib/robotArm';
+import { ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD, jointLimitsForProfile, armVendorForProfile } from '../lib/robotArm';
 import { parseNum } from '../lib/utils';
 import { ArmUrdfViewer } from './ArmUrdfViewer';
 import { ProgressBar } from './ProgressBar';
@@ -141,13 +141,22 @@ function RobotArmToolbar({
         >
           {t('arm_apply_default_template')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={runDemo}>
+        <button
+          style={{ display: 'none' }}
+          disabled={!canAction || armToolbarBusy}
+          onClick={runDemo}
+        >
           {t('arm_demo_btn')}
         </button>
-        <button className="ghostBtn" disabled={!demoBusy} onClick={stopDemo}>
+        <button
+          style={{ display: 'none' }}
+          className="ghostBtn"
+          disabled={!demoBusy}
+          onClick={stopDemo}
+        >
           {t('stop')}
         </button>
-        <div className="field miniField">
+        <div className="field miniField" style={{ display: 'none' }}>
           <label>{t('arm_demo_list')}</label>
           <select
             value={demoAction}
@@ -164,7 +173,7 @@ function RobotArmToolbar({
   );
 }
 
-function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening }) {
+function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening, profile }) {
   const { t } = useI18n();
   return (
     <div className="armSimPanel">
@@ -346,6 +355,7 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
       {trail.urdfImportInfo && <p className="tip">{trail.urdfImportInfo}</p>}
       <ArmUrdfViewer
         jointTargets={jointTargets}
+        profile={profile}
         resetViewSeq={trail.urdfResetSeq}
         clearTrailSeq={trail.urdfClearTrailSeq}
         exportTrailSeq={trail.urdfExportTrailSeq}
@@ -364,13 +374,21 @@ function ArmSimPanel({ jointTargets, trail, gripperOpening, setGripperOpening })
   );
 }
 
-function mapJoint7ToGripperOpening(joint7Raw) {
+// Per-profile joint7(rad) -> gripper opening(m) mapping.
+// dm:  joint7 in [-5.7, 0]   -> 0 ~ 0.0515 m (0 = open, -5.7 = closed)
+// rs:  joint7 in [0, 4.71]   -> 0 ~ 0.05   m (0 = closed, 4.71 = open)
+const GRIPPER_MAP = {
+  damiao: { joint7Min: -5.7, joint7Max: 0, openingMax: 0.0515 },
+  robstride: { joint7Min: 0, joint7Max: 4.71, openingMax: 0.05 },
+};
+
+function mapJoint7ToGripperOpening(joint7Raw, { joint7Min, joint7Max, openingMax }) {
   const joint7 = Number(joint7Raw);
   if (!Number.isFinite(joint7)) return 0;
-  const min = -5.7;
-  const max = 0;
-  const t = (Math.max(min, Math.min(max, joint7)) - min) / (max - min);
-  return t * 0.0515;
+  const span = joint7Max - joint7Min;
+  if (!span) return 0;
+  const t = (Math.max(joint7Min, Math.min(joint7Max, joint7)) - joint7Min) / span;
+  return t * openingMax;
 }
 
 export function RobotArmPage() {
@@ -546,7 +564,12 @@ export function RobotArmPage() {
                             );
                           });
                           const joint7Target = Number(jointTargets.joint7);
-                          const linkedGripperOpening = mapJoint7ToGripperOpening(joint7Target);
+                          const gripperMap =
+                            GRIPPER_MAP[armVendorForProfile(robotArmModel)] || GRIPPER_MAP.damiao;
+                          const linkedGripperOpening = mapJoint7ToGripperOpening(
+                            joint7Target,
+                            gripperMap
+                          );
                           const effectiveGripperOpening = Number.isFinite(joint7Target)
                             ? linkedGripperOpening
                             : Number(gripperOpening) || 0;
@@ -659,6 +682,7 @@ export function RobotArmPage() {
                                         trail={trail}
                                         gripperOpening={gripperOpening}
                                         setGripperOpening={setGripperOpening}
+                                        profile={armVendorForProfile(robotArmModel)}
                                       />
                                     </div>
                                   )}

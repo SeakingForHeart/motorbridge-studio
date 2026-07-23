@@ -68,7 +68,7 @@ describe('MotorDetailPanel control UI', () => {
   });
 
   it('shows Target Vel label and disables Vlim in vel mode', () => {
-    const { container } = renderWithStudio(
+    renderWithStudio(
       <MotorDetailPanel
         connected
         activeMotor={{
