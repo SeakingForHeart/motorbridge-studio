@@ -67,13 +67,13 @@ export const REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE = {
 };
 
 export const REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE = {
-  1: { locKp: '13', spdKp: '12.0', accRad: '12.0', velMax: '1' },
-  2: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
-  3: { locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
-  4: { locKp: '15', spdKp: '8.0', accRad: '20.0', velMax: '1' },
-  5: { locKp: '18', spdKp: '5.0', accRad: '20.0', velMax: '1' },
-  6: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
-  7: { locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
+  1: { curKp: '0.17', locKp: '13', spdKp: '12.0', accRad: '12.0', velMax: '1' },
+  2: { curKp: '0.08', locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
+  3: { curKp: '0.08', locKp: '17', spdKp: '13.5', accRad: '1.5', velMax: '0.4' },
+  4: { curKp: '0.125', locKp: '15', spdKp: '8.0', accRad: '20.0', velMax: '1' },
+  5: { curKp: '0.125', locKp: '18', spdKp: '5.0', accRad: '20.0', velMax: '1' },
+  6: { curKp: '0.125', locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
+  7: { curKp: '0.125', locKp: '10', spdKp: '5.0', accRad: '20.0', velMax: '1' },
 };
 
 export const REBOT_ARM_DAMIAO_JOINT_LIMITS = {

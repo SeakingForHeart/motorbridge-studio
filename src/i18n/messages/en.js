@@ -107,6 +107,9 @@ export const en = {
     'Then "Read Params" for record; apply the default template and "Write Params" to write the default parameters. If abnormal later, reset to mechanical zero before recalibration.',
   arm_prepare_cards: 'Prepare 7 Cards',
   arm_scan_all: 'Scan All Joints',
+  arm_auto_detect: 'Auto Detect',
+  arm_auto_detect_hint:
+    'Probe id0 motor to confirm the vendor, then scan the remaining joints with that vendor. Switches the arm only if all joints are online and the same vendor; otherwise the scan fails',
   arm_self_check: 'One-click Self-check',
   arm_self_check_running: 'Self-check running...',
   arm_self_check_result: 'Self-check Result',
@@ -177,6 +180,7 @@ export const en = {
   arm_params_template_applied: 'Applied reBot Arm Damiao default template (joints 1-6).',
   arm_params_template_applied_robstride:
     'Applied reBot Arm RobStride default template (joints 1-7).',
+  arm_params_writing_cur_kp: 'Writing and saving cur_kp (0x7010) per template...',
   arm_ctrl_mode: 'Control Mode',
   arm_current_bw: 'Current BW',
   arm_vel_kp: 'Vel KP',
@@ -192,6 +196,9 @@ export const en = {
   arm_right_control: 'Joint Control',
   arm_zero_current: 'Zero This Joint',
   arm_pos_slider: 'Position Slider',
+  arm_slider_no_interp_title: 'Slider Drag Safety Note',
+  arm_slider_no_interp_warn:
+    'Note: This slider has no interpolation planning. Too large a target angle delta will move the motor too fast. Keep each move within 5–10 deg.',
   arm_pos_range_hint: 'Range: -3.14 .. 3.14',
   arm_live_move: 'Live move while dragging',
   arm_live_move_on: 'Live mode ON (drag sends commands)',
@@ -328,7 +335,8 @@ export const en = {
     'Live mode is ON: dragging sends throttled pos_vel/force_pos commands.',
   general_target_slider_mit_live_disabled:
     'Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.',
-  general_target_slider_disabled: 'Slider is enabled for position modes only: mit / pos_vel / force_pos.',
+  general_target_slider_disabled:
+    'Slider is enabled for position modes only: mit / pos_vel / force_pos.',
   general_live_move: 'Live move while dragging',
   general_live_move_on: 'Live mode ON',
   general_live_move_off: 'Manual mode',

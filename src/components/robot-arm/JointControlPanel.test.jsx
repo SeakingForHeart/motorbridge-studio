@@ -11,6 +11,7 @@ function renderWithStudio(ui) {
     connection: {
       gatewayCapabilities: {
         vendors: {
+          damiao: { modes: ['mit', 'pos_vel', 'vel', 'force_pos'] },
           robstride: { modes: ['mit', 'pos_vel', 'vel'] },
         },
       },
@@ -33,12 +34,12 @@ function renderWithStudio(ui) {
   );
 }
 
-function createRow(mode = 'pos_vel', target = 0) {
+function createRow(vendor = 'damiao', mode = 'pos_vel', target = 0) {
   return {
-    key: 'robstride:1:253',
+    key: `${vendor}:1:253`,
     joint: 1,
     hit: {
-      vendor: 'robstride',
+      vendor,
       esc_id: 1,
       mst_id: 0xfd,
     },
@@ -85,19 +86,19 @@ afterEach(() => {
 
 describe('JointControlPanel', () => {
   it('shows Target Vel in vel mode', () => {
-    renderPanel({ activeRow: createRow('vel') });
+    renderPanel({ activeRow: createRow('damiao', 'vel') });
 
     expect(screen.getByLabelText('Target Vel')).toBeTruthy();
   });
 
   it('shows Target Pos outside vel mode', () => {
-    renderPanel({ activeRow: createRow('mit') });
+    renderPanel({ activeRow: createRow('damiao', 'mit') });
 
     expect(screen.getByLabelText('Target Pos')).toBeTruthy();
   });
 
   it('shows MIT live move as effectively off', () => {
-    renderPanel({ activeRow: createRow('mit'), liveMove: true });
+    renderPanel({ activeRow: createRow('damiao', 'mit'), liveMove: true });
 
     const checkbox = screen.getByRole('checkbox', { name: 'Live move while dragging' });
     expect(checkbox.disabled).toBe(true);
@@ -111,7 +112,7 @@ describe('JointControlPanel', () => {
   });
 
   it('disables the position slider in vel mode', () => {
-    renderPanel({ activeRow: createRow('vel'), liveMove: true });
+    renderPanel({ activeRow: createRow('damiao', 'vel'), liveMove: true });
 
     const slider = screen.getByRole('slider');
     const sliderInput = screen.getByLabelText('Position Slider');
@@ -120,7 +121,9 @@ describe('JointControlPanel', () => {
     expect(sliderInput.disabled).toBe(true);
     expect(checkbox.disabled).toBe(true);
     expect(checkbox.checked).toBe(false);
-    expect(screen.getByText('Slider is enabled for position modes only: mit / pos_vel / force_pos.')).toBeTruthy();
+    expect(
+      screen.getByText('Slider is enabled for position modes only: mit / pos_vel / force_pos.')
+    ).toBeTruthy();
   });
 
   it('passes transient negative target text through input changes', () => {
@@ -130,5 +133,38 @@ describe('JointControlPanel', () => {
     fireEvent.change(screen.getByLabelText('Target Pos'), { target: { value: '-' } });
 
     expect(onSliderTargetChange).toHaveBeenCalledWith('-');
+  });
+
+  it('gates slider drag behind an interpolation warning dialog', () => {
+    const onSliderTargetChange = vi.fn();
+    renderPanel({ onSliderTargetChange });
+
+    const slider = screen.getByRole('slider');
+    const warn =
+      'Note: This slider has no interpolation planning. Too large a target angle delta will move the motor too fast. Keep each move within 5–10 deg.';
+
+    fireEvent.change(slider, { target: { value: '1' } });
+    expect(onSliderTargetChange).not.toHaveBeenCalled();
+    expect(screen.getByText(warn)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(screen.queryByText(warn)).toBeNull();
+
+    fireEvent.change(slider, { target: { value: '1' } });
+    expect(onSliderTargetChange).toHaveBeenCalledWith('1');
+  });
+
+  it('locks robstride to MIT and hides the vlim field', () => {
+    const patchControl = vi.fn();
+    renderPanel({
+      activeRow: createRow('robstride', 'pos_vel'),
+      patchControl,
+    });
+
+    const modeSelect = screen.getByDisplayValue('mit');
+    expect(modeSelect.disabled).toBe(true);
+    expect(screen.queryByText('Vlim')).toBeNull();
+    expect(screen.getByLabelText('Target Pos')).toBeTruthy();
+    expect(patchControl).toHaveBeenCalledWith('robstride:1:253', { mode: 'mit' });
   });
 });

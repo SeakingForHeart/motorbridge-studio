@@ -468,6 +468,7 @@ export function useMotorStudio() {
       ensureRobotArmCards: robotArmState.ensureRobotArmCards,
       scanRobotArmJoint: robotArmState.scanRobotArmJoint,
       scanRobotArmAll: robotArmState.scanRobotArmAll,
+      detectRobotArmModel: robotArmState.detectRobotArmModel,
       runRobotArmSelfCheck: robotArmState.runRobotArmSelfCheck,
       enableAllRobotArm: robotArmState.enableAllRobotArm,
       disableAllRobotArm: robotArmState.disableAllRobotArm,
@@ -475,6 +476,7 @@ export function useMotorStudio() {
       resetPoseRobotArm: robotArmState.resetPoseRobotArm,
       readRobotArmControlParams: robotArmState.readRobotArmControlParams,
       writeRobotArmControlParams: robotArmState.writeRobotArmControlParams,
+      writeRobstrideParamToAllJoints: robotArmState.writeRobstrideParamToAllJoints,
     }),
     [robotArmState]
   );

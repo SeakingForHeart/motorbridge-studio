@@ -15,6 +15,17 @@ import { usePersistedState } from './usePersistedState';
 
 const LS_ROBOT_ARM_MODEL_KEY = 'motorbridge_studio_robot_arm_model_v1';
 
+// Probe options for a profile. RobStride needs explicit feedback ids; Damiao fast-probes only.
+function probeOptionsForProfile(profile, hit) {
+  const vendor = armVendorForProfile(profile);
+  if (vendor !== 'robstride') return { fastProbe: true };
+  return {
+    fastProbe: true,
+    acceptAnyFeedbackId: true,
+    feedbackIds: [hit.mst_id, ...ROBSTRIDE_FEEDBACK_IDS],
+  };
+}
+
 export function useRobotArmStudio({
   hits,
   setHits,
@@ -109,19 +120,54 @@ export function useRobotArmStudio({
     [hits, controls, robotArmModel]
   );
 
+  const finishScan = () => {
+    setArmScanBusy(false);
+    setTimeout(() => setArmScanProgress((prev) => ({ ...prev, active: false })), 500);
+  };
+
+  const markScanDone = (label) =>
+    setArmScanProgress({
+      active: true,
+      done: ROBOT_ARM_JOINTS.length,
+      total: ROBOT_ARM_JOINTS.length,
+      label,
+      percent: 100,
+    });
+
+  // Probe one joint for a profile with the shared progress animation.
+  const runJointProbe = async ({ hit, profile, index, total, labelFor }) => {
+    const step = index + 1;
+    let tick = 0;
+    const basePercent = Math.floor((index / total) * 100);
+    const progressTimer = setInterval(() => {
+      tick += 1;
+      setArmScanProgress({
+        active: true,
+        done: index,
+        total,
+        label: labelFor(step),
+        percent: Math.min(99, basePercent + Math.min(12, tick)),
+      });
+    }, 120);
+
+    const ok = await probeMotor(hit, probeOptionsForProfile(profile, hit));
+    clearInterval(progressTimer);
+    setArmScanProgress({
+      active: true,
+      done: step,
+      total,
+      label: labelFor(step),
+      percent: Math.floor((step / total) * 100),
+    });
+    await sleep(10);
+    return ok;
+  };
+
   const scanRobotArmJoint = async (jointNumber) => {
     const row = robotArmJointRows.find((x) => x.joint === jointNumber);
     if (!row) return false;
-    const vendor = armVendorForProfile(robotArmModel);
-    const options =
-      vendor === 'robstride'
-        ? {
-            fastProbe: true,
-            acceptAnyFeedbackId: true,
-            feedbackIds: [row.hit.mst_id, ...ROBSTRIDE_FEEDBACK_IDS],
-          }
-        : { fastProbe: true };
-    return probeMotor(row.hit, options);
+    const profile = normalizeRobotArmModel(robotArmModel);
+    return probeMotor(row.hit, probeOptionsForProfile(profile, row.hit));
   };
 
   const scanRobotArmAll = async () => {
@@ -130,11 +176,12 @@ export function useRobotArmStudio({
       return null;
     }
 
+    const total = ROBOT_ARM_JOINTS.length;
     setArmScanBusy(true);
     setArmScanProgress({
       active: true,
       done: 0,
-      total: ROBOT_ARM_JOINTS.length,
+      total,
       label: 'robot-arm scanning...',
       percent: 0,
     });
@@ -146,61 +193,129 @@ export function useRobotArmStudio({
     try {
       for (let i = 0; i < ROBOT_ARM_JOINTS.length; i += 1) {
         const j = ROBOT_ARM_JOINTS[i];
-        const step = i + 1;
         const row = robotArmJointRows.find((x) => x.joint === j.joint);
-        const hit = row?.hit || buildRobotArmHit(j, profile);
-        const vendor = armVendorForProfile(profile);
-        const probeOptions =
-          vendor === 'robstride'
-            ? {
-                fastProbe: true,
-                acceptAnyFeedbackId: true,
-                feedbackIds: [hit.mst_id, ...ROBSTRIDE_FEEDBACK_IDS],
-              }
-            : { fastProbe: true };
-
-        let tick = 0;
-        const basePercent = Math.floor((i / ROBOT_ARM_JOINTS.length) * 100);
-        const progressTimer = setInterval(() => {
-          tick += 1;
-          const inStep = Math.min(12, tick);
-          setArmScanProgress({
-            active: true,
-            done: i,
-            total: ROBOT_ARM_JOINTS.length,
-            label: `robot-arm scanning joint ${j.joint} (${step}/7)`,
-            percent: Math.min(99, basePercent + inStep),
-          });
-        }, 120);
-
-        const ok = await probeMotor(hit, probeOptions);
-        if (ok) onlineCount += 1;
-        clearInterval(progressTimer);
-
-        setArmScanProgress({
-          active: true,
-          done: step,
-          total: ROBOT_ARM_JOINTS.length,
-          label: `robot-arm scanning joint ${j.joint} (${step}/7)`,
-          percent: Math.floor((step / ROBOT_ARM_JOINTS.length) * 100),
+        const ok = await runJointProbe({
+          hit: row?.hit || buildRobotArmHit(j, profile),
+          profile,
+          index: i,
+          total,
+          labelFor: (s) => `robot-arm scanning joint ${j.joint} (${s}/${total})`,
         });
-        await sleep(10);
+        if (ok) onlineCount += 1;
       }
+      pushLog(`robot-arm scan done online=${onlineCount}/${total}`, 'ok');
+      markScanDone('robot-arm scan done');
+      return { total, onlineCount };
+    } finally {
+      finishScan();
+    }
+  };
 
-      pushLog(`robot-arm scan done online=${onlineCount}/7`, 'ok');
+  // Auto-detect: probe id0 (joint 1) against both vendors to pick the vendor,
+  // then require joints 2..7 to all be online with that vendor (online ==>
+  // same vendor + exists) before switching the dropdown. Any mismatch fails
+  // without changing the model.
+  const detectRobotArmModel = async () => {
+    if (armScanBusy) {
+      pushLog('robot-arm detect ignored: previous scan still running', 'err');
+      return null;
+    }
+
+    const profiles = ROBOT_ARM_MODELS.map((m) => m.key);
+    const total = ROBOT_ARM_JOINTS.length;
+    const firstJoint = ROBOT_ARM_JOINTS[0];
+
+    setArmScanBusy(true);
+    setArmScanProgress({
+      active: true,
+      done: 0,
+      total,
+      label: 'robot-arm auto-detecting...',
+      percent: 0,
+    });
+
+    try {
+      pushLog(
+        `robot-arm detect: probing joint ${firstJoint.joint} (esc_id=${firstJoint.esc_id}) against ${profiles
+          .map(armVendorForProfile)
+          .join(',')}`,
+        'info'
+      );
+      const results = await Promise.all(
+        profiles.map(async (p) => {
+          const hit = buildRobotArmHit(firstJoint, p);
+          return probeMotor(hit, probeOptionsForProfile(p, hit));
+        })
+      );
+      const onlineProfiles = profiles.filter((_, i) => results[i]);
+
       setArmScanProgress({
         active: true,
-        done: ROBOT_ARM_JOINTS.length,
-        total: ROBOT_ARM_JOINTS.length,
-        label: 'robot-arm scan done',
-        percent: 100,
+        done: 1,
+        total,
+        label: 'robot-arm detect: vendor probe done',
+        percent: Math.floor((1 / total) * 100),
       });
-      return { total: ROBOT_ARM_JOINTS.length, onlineCount };
+
+      // None or multiple vendors at id0 -> abort, keep model.
+      if (onlineProfiles.length !== 1) {
+        pushLog(
+          onlineProfiles.length === 0
+            ? 'robot-arm detect: no motor found at joint 1, aborting (model unchanged)'
+            : `robot-arm detect: multiple vendors responded at joint 1 (${onlineProfiles
+                .map(armVendorForProfile)
+                .join(',')}), aborting (model unchanged)`,
+          'err'
+        );
+        return { vendor: null, changed: false };
+      }
+
+      const winnerProfile = onlineProfiles[0];
+      const winnerVendor = armVendorForProfile(winnerProfile);
+      const current = normalizeRobotArmModel(robotArmModel);
+      pushLog(
+        `robot-arm detect: joint 1 is ${winnerVendor}, scanning remaining joints to confirm vendor consistency`,
+        'info'
+      );
+
+      const offlineJoints = [];
+      for (let i = 1; i < ROBOT_ARM_JOINTS.length; i += 1) {
+        const j = ROBOT_ARM_JOINTS[i];
+        const ok = await runJointProbe({
+          hit: buildRobotArmHit(j, winnerProfile),
+          profile: winnerProfile,
+          index: i,
+          total,
+          labelFor: () => `detecting joint ${j.joint} (${winnerVendor})`,
+        });
+        if (!ok) offlineJoints.push(j.joint);
+      }
+
+      if (offlineJoints.length > 0) {
+        pushLog(
+          `robot-arm detect failed: joints ${offlineJoints.join(',')} not online / vendor mismatch with id0 (${winnerVendor}); model unchanged`,
+          'err'
+        );
+        markScanDone('robot-arm detect failed');
+        return { vendor: winnerVendor, changed: false, failed: true, offlineJoints };
+      }
+
+      if (winnerProfile !== current) setRobotArmModel(winnerProfile);
+      pushLog(
+        `robot-arm detect done: vendor=${winnerVendor} online=${ROBOT_ARM_JOINTS.length}/${ROBOT_ARM_JOINTS.length}, ${
+          winnerProfile === current ? 'profile already set' : `switched to ${winnerProfile}`
+        }`,
+        'ok'
+      );
+      markScanDone('robot-arm detect done');
+      return {
+        vendor: winnerVendor,
+        profile: winnerProfile,
+        onlineCount: ROBOT_ARM_JOINTS.length,
+        changed: winnerProfile !== current,
+      };
     } finally {
-      setArmScanBusy(false);
-      setTimeout(() => {
-        setArmScanProgress((prev) => ({ ...prev, active: false }));
-      }, 500);
+      finishScan();
     }
   };
 
@@ -213,5 +328,6 @@ export function useRobotArmStudio({
     ensureRobotArmCards,
     scanRobotArmJoint,
     scanRobotArmAll,
+    detectRobotArmModel,
   };
 }

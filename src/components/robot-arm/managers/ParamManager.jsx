@@ -18,6 +18,7 @@ export function ParamManager({
   robotArmJointRows,
   readRobotArmControlParams,
   writeRobotArmControlParams,
+  writeRobstrideParamToAllJoints,
   sendCmd,
   setArmParamOpBusy,
   askZeroConfirm,
@@ -245,7 +246,7 @@ export function ParamManager({
     writeRobotArmControlParams,
   ]);
 
-  const applyDefaultTemplate = React.useCallback(() => {
+  const applyDefaultTemplate = React.useCallback(async () => {
     setParamPanelOpen(true);
     if (!paramSupported) {
       setParamInfo(t('arm_params_vendor_unsupported'));
@@ -270,6 +271,42 @@ export function ParamManager({
         };
       })
     );
+
+    // RobStride: also write+save cur_kp (0x7010) to every online joint, using
+    // each joint's value from the template.
+    if (paramVendor === 'robstride' && writeRobstrideParamToAllJoints) {
+      const curKpDef = paramDefs.find((d) => d.key === 'curKp');
+      setParamBusy(true);
+      setArmParamOpBusy?.(true);
+      setParamInfo(t('arm_params_writing_cur_kp'));
+      try {
+        const valuesByJoint = {};
+        for (const jn of Object.keys(template)) {
+          valuesByJoint[Number(jn)] = Number(template[Number(jn)].curKp);
+        }
+        const res = await writeRobstrideParamToAllJoints({
+          paramId: curKpDef?.paramId ?? 0x7010,
+          type: curKpDef?.dataType ?? 'f32',
+          valuesByJoint,
+          store: true,
+          onProgress: setParamProgress,
+        });
+        if (res?.error) {
+          setParamInfo(`${t('arm_params_write_failed')}: ${res.error}`);
+        } else {
+          setParamInfo(
+            `${t('arm_params_template_applied_robstride')} (0x7010: ${res.okCount}/${res.total})`
+          );
+        }
+      } catch (e) {
+        setParamInfo(`${t('arm_params_write_failed')}: ${e.message || e}`);
+      } finally {
+        setArmParamOpBusy?.(false);
+        setParamBusy(false);
+      }
+      return;
+    }
+
     setParamInfo(
       t(
         paramVendor === 'robstride'
@@ -277,7 +314,14 @@ export function ParamManager({
           : 'arm_params_template_applied'
       )
     );
-  }, [paramSupported, paramVendor, t]);
+  }, [
+    paramDefs,
+    paramSupported,
+    paramVendor,
+    setArmParamOpBusy,
+    t,
+    writeRobstrideParamToAllJoints,
+  ]);
 
   const canWriteParams = React.useMemo(() => {
     if (!paramSupported) return false;

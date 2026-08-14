@@ -366,6 +366,19 @@ export const DAMIAO_CTRL_PARAM_RID = Object.freeze(
 
 export const ROBSTRIDE_ARM_PARAM_DEFS = [
   {
+    key: 'curKp',
+    paramId: 0x7010,
+    rid: '0x7010',
+    variable: 'cur_kp',
+    label: 'cur_kp',
+    dataType: 'f32',
+    range: '[0.0, 3.4E38]',
+    writable: false,
+    common: true,
+    group: 'core',
+    defaultValue: '',
+  },
+  {
     key: 'locKp',
     paramId: 0x701e,
     rid: '0x701E',

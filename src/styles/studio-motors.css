@@ -25,7 +25,10 @@
     radial-gradient(120% 100% at 100% 0%, rgba(87, 126, 255, 0.15) 0%, rgba(87, 126, 255, 0) 55%),
     linear-gradient(180deg, #ffffff, #f7f9ff);
   padding: 10px;
-  transition: transform 140ms ease, box-shadow 180ms ease, border-color 160ms ease;
+  transition:
+    transform 140ms ease,
+    box-shadow 180ms ease,
+    border-color 160ms ease;
   cursor: grab;
 }
 
@@ -47,7 +50,9 @@
 }
 
 .motorCard.new {
-  animation: popIn 0.5s ease, pulseGlow 1.2s ease;
+  animation:
+    popIn 0.5s ease,
+    pulseGlow 1.2s ease;
 }
 
 .motorCardTop {
@@ -239,7 +244,10 @@
   text-align: left;
   display: grid;
   gap: 2px;
-  transition: border-color 140ms ease, box-shadow 160ms ease, transform 100ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 160ms ease,
+    transform 100ms ease;
 }
 
 .damiaoRwChip:hover {
@@ -347,7 +355,10 @@
   padding: 10px;
   background: #ffffff;
   cursor: pointer;
-  transition: border-color 140ms ease, box-shadow 180ms ease, transform 120ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease;
 }
 
 .armJointCard:hover {
@@ -652,12 +663,14 @@
   border-color: #7f56d9;
   color: #ffffff;
   font-weight: 700;
-  background:
-    linear-gradient(135deg, #6d5efc 0%, #20b2ff 50%, #19c37d 100%);
+  background: linear-gradient(135deg, #6d5efc 0%, #20b2ff 50%, #19c37d 100%);
   box-shadow:
     0 8px 18px rgba(83, 93, 255, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 140ms ease, box-shadow 180ms ease, filter 140ms ease;
+  transition:
+    transform 140ms ease,
+    box-shadow 180ms ease,
+    filter 140ms ease;
 }
 
 .firstUseBtn:hover {

@@ -43,8 +43,12 @@ export function JointList({
               </div>
             </div>
             <div className="armMeta">
-              <span>{t('esc_id')} {toHex(row.hit.esc_id)}</span>
-              <span>{t('mst_id')} {toHex(row.hit.mst_id)}</span>
+              <span>
+                {t('esc_id')} {toHex(row.hit.esc_id)}
+              </span>
+              <span>
+                {t('mst_id')} {toHex(row.hit.mst_id)}
+              </span>
             </div>
             <div className="armMeta">
               <span>

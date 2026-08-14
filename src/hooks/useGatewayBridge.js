@@ -48,8 +48,11 @@ export function useGatewayBridge({
   };
 
   const buildWsConnectUrl = () => {
-    const { wsUrl: nextWsUrl, wsTokenEnabled: nextWsTokenEnabled, wsToken: nextWsToken } =
-      connectConfigRef.current;
+    const {
+      wsUrl: nextWsUrl,
+      wsTokenEnabled: nextWsTokenEnabled,
+      wsToken: nextWsToken,
+    } = connectConfigRef.current;
     const baseUrl = nextWsUrl.trim();
     if (!nextWsTokenEnabled) return baseUrl;
     if (!nextWsToken.trim()) {
@@ -143,7 +146,12 @@ export function useGatewayBridge({
           connectingRef.current = false;
           setConnected(true);
           setConnText(t('conn_connected'));
-          pushLog(t('log_connected', { url: lastConnectUrlRef.current || connectConfigRef.current.wsUrl }), 'ok');
+          pushLog(
+            t('log_connected', {
+              url: lastConnectUrlRef.current || connectConfigRef.current.wsUrl,
+            }),
+            'ok'
+          );
           clientRef.current
             ?.send('capabilities', {}, 3000)
             .then((ret) => {

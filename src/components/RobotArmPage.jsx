@@ -1,7 +1,12 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n';
-import { ROBOT_ARM_MODELS, ZERO_SAFE_EPS_RAD, jointLimitsForProfile, armVendorForProfile } from '../lib/robotArm';
+import {
+  ROBOT_ARM_MODELS,
+  ZERO_SAFE_EPS_RAD,
+  jointLimitsForProfile,
+  armVendorForProfile,
+} from '../lib/robotArm';
 import { parseNum } from '../lib/utils';
 import { ArmUrdfViewer } from './ArmUrdfViewer';
 import { ProgressBar } from './ProgressBar';
@@ -57,6 +62,7 @@ function RobotArmToolbar({
   robotArmModel,
   setRobotArmModel,
   scanRobotArmAll,
+  detectRobotArmModel,
   runRobotArmSelfCheck,
   enableAllRobotArm,
   disableAllRobotArm,
@@ -88,6 +94,14 @@ function RobotArmToolbar({
             ))}
           </select>
         </div>
+        <button
+          className="ghostBtn"
+          disabled={!canAction || armToolbarBusy}
+          onClick={detectRobotArmModel}
+          title={t('arm_auto_detect_hint')}
+        >
+          {t('arm_auto_detect')}
+        </button>
         <button className="firstUseBtn" onClick={onOpenFirstUse}>
           {t('arm_first_use_btn')}
         </button>
@@ -410,6 +424,7 @@ export function RobotArmPage() {
     robotArmJointRows,
     scanRobotArmJoint,
     scanRobotArmAll,
+    detectRobotArmModel,
     runRobotArmSelfCheck,
     enableAllRobotArm,
     disableAllRobotArm,
@@ -417,6 +432,7 @@ export function RobotArmPage() {
     resetPoseRobotArm,
     readRobotArmControlParams,
     writeRobotArmControlParams,
+    writeRobstrideParamToAllJoints,
   } = useRobotArmContext();
   const [activeJointKey, setActiveJointKey] = React.useState('');
   const [limitWarn, setLimitWarn] = React.useState('');
@@ -541,6 +557,7 @@ export function RobotArmPage() {
                         robotArmJointRows={robotArmJointRows}
                         readRobotArmControlParams={readRobotArmControlParams}
                         writeRobotArmControlParams={writeRobotArmControlParams}
+                        writeRobstrideParamToAllJoints={writeRobstrideParamToAllJoints}
                         sendCmd={sendCmd}
                         setArmParamOpBusy={setArmParamOpBusy}
                         askZeroConfirm={zero.askZeroConfirm}
@@ -585,6 +602,7 @@ export function RobotArmPage() {
                                 robotArmModel={robotArmModel}
                                 setRobotArmModel={setRobotArmModel}
                                 scanRobotArmAll={scanRobotArmAll}
+                                detectRobotArmModel={detectRobotArmModel}
                                 runRobotArmSelfCheck={runRobotArmSelfCheck}
                                 enableAllRobotArm={enableAllRobotArm}
                                 disableAllRobotArm={disableAllRobotArm}

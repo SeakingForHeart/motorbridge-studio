@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n';
 import { useConnectionContext } from '../../hooks/useMotorStudioContext';
 import { modesForVendor } from '../../lib/wsCapabilities';
 import { controlInputValue, toHex } from '../../lib/utils';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 function modeDefaultsForRow(row, nextMode) {
   const joint = Number(row?.joint);
@@ -42,18 +43,41 @@ export function JointControlPanel({
 }) {
   const { t } = useI18n();
   const { gatewayCapabilities } = useConnectionContext();
-  if (!activeRow) return null;
   const vendor = String(activeRow?.hit?.vendor || '').toLowerCase();
+  const isRobstride = vendor === 'robstride';
+  const [sliderWarnOpen, setSliderWarnOpen] = React.useState(false);
+  const sliderWarnAcceptedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!activeRow || !isRobstride) return;
+    if (String(activeRow?.control?.mode) !== 'mit') {
+      patchControl(activeRow.key, { mode: 'mit' });
+    }
+  }, [activeRow, isRobstride, patchControl]);
+
+  const onSliderDragChange = (e) => {
+    if (sliderWarnAcceptedRef.current) {
+      onSliderTargetChange(e.target.value);
+      return;
+    }
+    if (sliderWarnOpen) return;
+    setSliderWarnOpen(true);
+  };
+
+  if (!activeRow) return null;
   const mode = String(activeRow?.control?.mode || 'pos_vel');
-  const modeOptions = modesForVendor(gatewayCapabilities, vendor);
-  const vlimDisabled = mode !== 'pos_vel' && mode !== 'force_pos';
-  const tauDisabled = mode !== 'mit';
-  const kpDisabled = mode !== 'mit';
-  const kdDisabled = mode !== 'mit';
-  const positionSliderEnabled = mode === 'mit' || mode === 'pos_vel' || mode === 'force_pos';
-  const liveMoveSupported = mode === 'pos_vel' || mode === 'force_pos';
+  const effectiveMode = isRobstride ? 'mit' : mode;
+  const modeOptions = isRobstride ? ['mit'] : modesForVendor(gatewayCapabilities, vendor);
+  const vlimDisabled = effectiveMode !== 'pos_vel' && effectiveMode !== 'force_pos';
+  const tauDisabled = effectiveMode !== 'mit';
+  const kpDisabled = effectiveMode !== 'mit';
+  const kdDisabled = effectiveMode !== 'mit';
+  const positionSliderEnabled =
+    effectiveMode === 'mit' || effectiveMode === 'pos_vel' || effectiveMode === 'force_pos';
+  const liveMoveSupported = effectiveMode === 'pos_vel' || effectiveMode === 'force_pos';
   const effectiveLiveMove = liveMoveSupported && liveMove;
-  const targetLabelKey = mode === 'vel' ? 'target_vel' : 'target_pos';
+  const targetLabelKey = effectiveMode === 'vel' ? 'target_vel' : 'target_pos';
+
   const patchNumber = (field) => (e) => {
     patchControl(activeRow.key, {
       [field]: e.target.value,
@@ -75,7 +99,8 @@ export function JointControlPanel({
         <div className="field">
           <label>{t('mode')}</label>
           <select
-            value={activeRow.control.mode}
+            value={isRobstride ? 'mit' : activeRow.control.mode}
+            disabled={isRobstride}
             onChange={(e) => {
               cancelLiveMove();
               patchControl(activeRow.key, modeDefaultsForRow(activeRow, e.target.value));
@@ -88,14 +113,16 @@ export function JointControlPanel({
             ))}
           </select>
         </div>
-        <div className="field">
-          <label>{t('vlim')}</label>
-          <input
-            value={controlInputValue(activeRow.control.vlim)}
-            disabled={vlimDisabled}
-            onChange={patchNumber('vlim')}
-          />
-        </div>
+        {!isRobstride && (
+          <div className="field">
+            <label>{t('vlim')}</label>
+            <input
+              value={controlInputValue(activeRow.control.vlim)}
+              disabled={vlimDisabled}
+              onChange={patchNumber('vlim')}
+            />
+          </div>
+        )}
         <div className="field">
           <label>{t('tau')}</label>
           <input
@@ -141,7 +168,7 @@ export function JointControlPanel({
           step="0.01"
           value={sliderValue}
           disabled={!positionSliderEnabled}
-          onChange={(e) => onSliderTargetChange(e.target.value)}
+          onChange={onSliderDragChange}
         />
         <div className="armSliderMeta">
           <label className="armLiveToggle">
@@ -210,6 +237,18 @@ export function JointControlPanel({
           {t('refresh_state')}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={sliderWarnOpen}
+        title={t('arm_slider_no_interp_title')}
+        message={t('arm_slider_no_interp_warn')}
+        danger
+        onCancel={() => setSliderWarnOpen(false)}
+        onConfirm={() => {
+          sliderWarnAcceptedRef.current = true;
+          setSliderWarnOpen(false);
+        }}
+      />
     </div>
   );
 }

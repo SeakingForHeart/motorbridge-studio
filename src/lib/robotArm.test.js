@@ -31,18 +31,21 @@ describe('robotArm config', () => {
   it('contains RobStride default template values for all joints', () => {
     expect(Object.keys(REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE)).toHaveLength(7);
     expect(REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE[1]).toEqual({
+      curKp: '0.17',
       locKp: '13',
       spdKp: '12.0',
       accRad: '12.0',
       velMax: '1',
     });
     expect(REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE[2]).toMatchObject({
+      curKp: '0.08',
       locKp: '17',
       spdKp: '13.5',
       accRad: '1.5',
       velMax: '0.4',
     });
     expect(REBOT_ARM_ROBSTRIDE_DEFAULT_TEMPLATE[7]).toMatchObject({
+      curKp: '0.125',
       locKp: '10',
       spdKp: '5.0',
       accRad: '20.0',

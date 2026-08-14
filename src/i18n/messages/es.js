@@ -106,6 +106,9 @@ export const es = {
     'Después, use "Leer parámetros" para registrar; luego aplique la plantilla predeterminada y "Escribir parámetros" para escribir los parámetros predeterminados. Si hay anomalías después, vuelva al cero mecánico antes de recalibrar.',
   arm_prepare_cards: 'Preparar 7 tarjetas',
   arm_scan_all: 'Escanear todas',
+  arm_auto_detect: 'Detectar auto.',
+  arm_auto_detect_hint:
+    'Sondea el motor id0 para confirmar el fabricante, luego escanea las demas articulaciones con ese fabricante. Cambia el brazo solo si todas estan en linea y son del mismo fabricante; si no, falla',
   arm_self_check: 'Autochequeo',
   arm_self_check_running: 'Autochequeo en curso...',
   arm_self_check_result: 'Resultado de Autochequeo',
@@ -182,6 +185,7 @@ export const es = {
     'Plantilla por defecto de reBot Arm Damiao aplicada (articulaciones 1-6).',
   arm_params_template_applied_robstride:
     'Plantilla por defecto de reBot Arm RobStride aplicada (articulaciones 1-7).',
+  arm_params_writing_cur_kp: 'Escribiendo y guardando cur_kp (0x7010) según plantilla...',
   arm_ctrl_mode: 'Modo de control',
   arm_current_bw: 'BW corriente',
   arm_vel_kp: 'Vel KP',
@@ -197,6 +201,9 @@ export const es = {
   arm_right_control: 'Control de articulación',
   arm_zero_current: 'Cero de esta articulación',
   arm_pos_slider: 'Slider de posición',
+  arm_slider_no_interp_title: 'Aviso de seguridad del slider',
+  arm_slider_no_interp_warn:
+    'Aviso: Este slider no tiene planificación de interpolación. Un delta de ángulo objetivo demasiado grande moverá el motor demasiado rápido. Mantenga cada movimiento entre 5 y 10 grados.',
   arm_pos_range_hint: 'Rango: -3.14 .. 3.14',
   arm_live_move: 'Mover en vivo al arrastrar',
   arm_live_move_on: 'Modo en vivo ACTIVADO (arrastre envía)',
@@ -258,7 +265,8 @@ export const es = {
   ws_token_enabled: 'Habilitar MOTORBRIDGE_WS_TOKEN',
   ws_token: 'MOTORBRIDGE_WS_TOKEN',
   ws_token_placeholder: 'Introduzca el token del ws_gateway remoto',
-  ws_token_required: 'MOTORBRIDGE_WS_TOKEN es obligatorio cuando la autenticación por token está habilitada.',
+  ws_token_required:
+    'MOTORBRIDGE_WS_TOKEN es obligatorio cuando la autenticación por token está habilitada.',
   show_ws_token: 'Mostrar token',
   hide_ws_token: 'Ocultar token',
   websocket_can: 'WebSocket + CAN',

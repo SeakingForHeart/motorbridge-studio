@@ -95,9 +95,13 @@ export const zh = {
   arm_first_use_step_2: '先手动将 7 个关节摆到合理机械初始位，确保周围无干涉。',
   arm_first_use_step_3: '点击“扫描全部关节”，确认在线状态正常。',
   arm_first_use_step_4: '确认当前位置正确后，再执行“全部校零”（会有多次安全确认）。',
-  arm_first_use_step_5: '完成后建议“读取参数”留档，然后套用默认模板写入默认参数；若后续出现异常，先回机械零位再重校零。',
+  arm_first_use_step_5:
+    '完成后建议“读取参数”留档，然后套用默认模板写入默认参数；若后续出现异常，先回机械零位再重校零。',
   arm_prepare_cards: '准备 7 张卡片',
   arm_scan_all: '扫描全部关节',
+  arm_auto_detect: '自动识别',
+  arm_auto_detect_hint:
+    '扫描 id0 电机确认厂商，再用该厂商协议扫描其余关节；全部在线且厂商一致才切换机械臂，否则扫描失败',
   arm_self_check: '一键自检',
   arm_self_check_running: '自检执行中...',
   arm_self_check_result: '自检结果',
@@ -164,6 +168,7 @@ export const zh = {
   arm_live_move_failed: '实时移动失败，目标值已按电机状态同步回退。',
   arm_params_template_applied: '已套用 reBot Arm Damiao 默认参数模板（1~6 关节）',
   arm_params_template_applied_robstride: '已套用 reBot Arm RobStride 默认参数模板（1~7 关节）',
+  arm_params_writing_cur_kp: '正在按模板写入并保存 cur_kp (0x7010)...',
   arm_ctrl_mode: '控制模式',
   arm_current_bw: '电流带宽',
   arm_vel_kp: '速度 KP',
@@ -179,6 +184,9 @@ export const zh = {
   arm_right_control: '关节控制',
   arm_zero_current: '单关节置零',
   arm_pos_slider: '位置滑条',
+  arm_slider_no_interp_title: '滑条拖动安全提醒',
+  arm_slider_no_interp_warn:
+    '提醒：本滑条没有插值规划，输入的目标关节角度差过大会让电机运动过快，每次执行请确保角度差在 5~10 度',
   arm_pos_range_hint: '范围: -3.14 .. 3.14',
   arm_live_move: '拖动实时发送',
   arm_live_move_on: '实时模式：拖动即发送',
@@ -311,7 +319,8 @@ export const zh = {
   general_target_slider: '期望角度滑条',
   general_target_slider_tip: '拖动只修改目标值；点击“执行”后才会下发命令。',
   general_target_slider_live_tip: '实时模式已开启：拖动会节流下发 pos_vel/force_pos 命令。',
-  general_target_slider_mit_live_disabled: 'MIT 模式出于安全考虑禁用 Live Move；拖动只修改目标值，点击“执行”后才会下发。',
+  general_target_slider_mit_live_disabled:
+    'MIT 模式出于安全考虑禁用 Live Move；拖动只修改目标值，点击“执行”后才会下发。',
   general_target_slider_disabled: '滑条仅在位置类模式启用：mit / pos_vel / force_pos。',
   general_live_move: '拖动实时发送',
   general_live_move_on: '实时模式开启',

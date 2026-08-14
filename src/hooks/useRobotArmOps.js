@@ -45,6 +45,7 @@ export function useRobotArmOps({
     ensureRobotArmCards,
     scanRobotArmJoint,
     scanRobotArmAll,
+    detectRobotArmModel,
   } = useRobotArmStudio({
     hits,
     setHits,
@@ -149,7 +150,11 @@ export function useRobotArmOps({
 
       if (store) {
         pushLog('storing parameters...', 'info');
-        const stored = await sendCmd('store_parameters', { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id }, 4000);
+        const stored = await sendCmd(
+          'store_parameters',
+          { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+          4000
+        );
         if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
       }
     } finally {
@@ -208,7 +213,11 @@ export function useRobotArmOps({
       }
 
       if (store) {
-        const stored = await sendCmd('store_parameters', { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id }, 4000);
+        const stored = await sendCmd(
+          'store_parameters',
+          { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+          4000
+        );
         if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
       }
     } finally {
@@ -505,6 +514,106 @@ export function useRobotArmOps({
     }
   };
 
+  // Write a single RobStride param (e.g. cur_kp 0x7010) to every online
+  // robstride arm joint and store it. `value` applies to all joints; pass
+  // `valuesByJoint` (joint number -> value) to write a per-joint value.
+  // Returns { okCount, total, result }.
+  const writeRobstrideParamToAllJoints = async ({
+    paramId,
+    type,
+    value,
+    valuesByJoint,
+    store = true,
+    onProgress,
+  }) => {
+    const rows = robotArmJointRows.filter(
+      (r) => String(r?.hit?.vendor) === 'robstride' && Boolean(r?.hit?.online)
+    );
+    const total = rows.length;
+    const hex = `0x${Number(paramId).toString(16)}`;
+    const resolveValue = (row) =>
+      valuesByJoint && Object.prototype.hasOwnProperty.call(valuesByJoint, row.joint)
+        ? Number(valuesByJoint[row.joint])
+        : Number(value);
+    if (total === 0) {
+      onProgress?.({
+        active: false,
+        done: 0,
+        total: 0,
+        label: `no online robstride joints`,
+        percent: 0,
+      });
+      return { error: 'no online robstride joints', okCount: 0, total: 0 };
+    }
+    onProgress?.({
+      active: true,
+      done: 0,
+      total,
+      label: `writing ${hex}`,
+      percent: 0,
+    });
+
+    const result = {};
+    let done = 0;
+    let okCount = 0;
+    for (const row of rows) {
+      const h = row.hit;
+      const v = resolveValue(row);
+      if (!Number.isFinite(v)) {
+        result[row.key] = { ok: false, error: `invalid value for joint ${row.joint}` };
+        done += 1;
+        onProgress?.({
+          active: true,
+          done,
+          total,
+          label: `writing ${hex} joint ${row.joint} skipped (invalid value)`,
+          percent: Math.floor((done / total) * 100),
+        });
+        continue;
+      }
+      try {
+        await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id, {
+          enableStreams: false,
+        });
+        const ret = await sendCmd(
+          'robstride_write_param',
+          { param_id: paramId, type, value: v, timeout_ms: 1000 },
+          3000
+        );
+        if (!ret?.ok) throw new Error(ret?.error || `${hex} write failed`);
+        if (store) {
+          const stored = await sendCmd(
+            'store_parameters',
+            { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+            4000
+          );
+          if (!stored?.ok) throw new Error(stored?.error || 'store_parameters failed');
+        }
+        result[row.key] = { ok: true };
+        okCount += 1;
+      } catch (e) {
+        result[row.key] = { ok: false, error: e.message || String(e) };
+      }
+      await closeBusQuietly();
+      done += 1;
+      onProgress?.({
+        active: true,
+        done,
+        total,
+        label: `writing ${hex}=${v} joint ${row.joint}`,
+        percent: Math.floor((done / total) * 100),
+      });
+    }
+    onProgress?.({
+      active: true,
+      done: total,
+      total,
+      label: `${hex} done`,
+      percent: 100,
+    });
+    return { okCount, total, result };
+  };
+
   return {
     robotArmModel,
     armScanBusy,
@@ -514,6 +623,7 @@ export function useRobotArmOps({
     ensureRobotArmCards,
     scanRobotArmJoint,
     scanRobotArmAll,
+    detectRobotArmModel,
     armBulkBusy,
     armParamOpBusy,
     setArmParamOpBusy,
@@ -527,5 +637,6 @@ export function useRobotArmOps({
     resetPoseRobotArm,
     readRobotArmControlParams,
     writeRobotArmControlParams,
+    writeRobstrideParamToAllJoints,
   };
 }
