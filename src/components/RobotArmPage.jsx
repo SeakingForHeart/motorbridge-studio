@@ -13,6 +13,7 @@ import { ProgressBar } from './ProgressBar';
 import {
   useConnectionContext,
   useControlContext,
+  useDevContext,
   usePreferencesContext,
   useRobotArmContext,
 } from '../hooks/useMotorStudioContext';
@@ -66,13 +67,12 @@ function RobotArmToolbar({
   runRobotArmSelfCheck,
   enableAllRobotArm,
   disableAllRobotArm,
-  resetPoseRobotArm,
   onZeroAllSafe,
-  readParams,
-  writeParams,
   applyDefaultTemplate,
+  exportParams,
+  importParams,
   paramSupported,
-  paramPanelOpen,
+  paramVendor,
   runDemo,
   stopDemo,
   demoAction,
@@ -81,6 +81,12 @@ function RobotArmToolbar({
   onOpenFirstUse,
 }) {
   const { t } = useI18n();
+  const importFileRef = React.useRef(null);
+  const onImportFile = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (f) importParams?.(f);
+  };
   return (
     <>
       <div className="row toolbar compactToolbar armTopToolbar">
@@ -132,23 +138,6 @@ function RobotArmToolbar({
         >
           {t('arm_zero_all')}
         </button>
-        <button disabled={!canAction || armToolbarBusy} onClick={resetPoseRobotArm}>
-          {t('arm_reset_pose')}
-        </button>
-        <button
-          disabled={!canAction || armToolbarBusy || !paramSupported}
-          onClick={readParams}
-          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
-        >
-          {t('arm_read_params')}
-        </button>
-        <button
-          disabled={!canAction || armToolbarBusy || !paramPanelOpen || !paramSupported}
-          onClick={writeParams}
-          title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
-        >
-          {t('arm_write_params')}
-        </button>
         <button
           disabled={!canAction || armToolbarBusy || !paramSupported}
           onClick={applyDefaultTemplate}
@@ -156,6 +145,35 @@ function RobotArmToolbar({
         >
           {t('arm_apply_default_template')}
         </button>
+        {paramVendor === 'robstride' && (
+          <button
+            disabled={!canAction || armToolbarBusy || !paramSupported}
+            onClick={exportParams}
+            title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
+          >
+            {t('arm_export_params')}
+          </button>
+        )}
+        {paramVendor === 'robstride' && (
+          <>
+            <button
+              disabled={!canAction || armToolbarBusy || !paramSupported}
+              onClick={() => importFileRef.current?.click()}
+              title={
+                paramSupported ? t('arm_import_params_hint') : t('arm_params_vendor_unsupported')
+              }
+            >
+              {t('arm_import_params')}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".tsv,.txt,text/tab-separated-values,text/plain"
+              style={{ display: 'none' }}
+              onChange={onImportFile}
+            />
+          </>
+        )}
         <button
           style={{ display: 'none' }}
           disabled={!canAction || armToolbarBusy}
@@ -408,6 +426,7 @@ function mapJoint7ToGripperOpening(joint7Raw, { joint7Min, joint7Max, openingMax
 
 export function RobotArmPage() {
   const { t } = useI18n();
+  const { devMode } = useDevContext();
   const { connected, canAction, sendCmd } = useConnectionContext();
   const { uiPrefs, setUiPref } = usePreferencesContext();
   const { patchControl, controlMotor, zeroMotor, refreshMotorState } = useControlContext();
@@ -433,6 +452,8 @@ export function RobotArmPage() {
     readRobotArmControlParams,
     writeRobotArmControlParams,
     writeRobstrideParamToAllJoints,
+    exportRobstrideParams,
+    importRobstrideParams,
   } = useRobotArmContext();
   const [activeJointKey, setActiveJointKey] = React.useState('');
   const [limitWarn, setLimitWarn] = React.useState('');
@@ -558,6 +579,9 @@ export function RobotArmPage() {
                         readRobotArmControlParams={readRobotArmControlParams}
                         writeRobotArmControlParams={writeRobotArmControlParams}
                         writeRobstrideParamToAllJoints={writeRobstrideParamToAllJoints}
+                        exportRobstrideParams={exportRobstrideParams}
+                        importRobstrideParams={importRobstrideParams}
+                        devMode={devMode}
                         sendCmd={sendCmd}
                         setArmParamOpBusy={setArmParamOpBusy}
                         askZeroConfirm={zero.askZeroConfirm}
@@ -608,11 +632,11 @@ export function RobotArmPage() {
                                 disableAllRobotArm={disableAllRobotArm}
                                 resetPoseRobotArm={resetPoseRobotArm}
                                 onZeroAllSafe={zero.onZeroAllSafe}
-                                readParams={params.readParams}
-                                writeParams={params.writeParams}
                                 applyDefaultTemplate={params.applyDefaultTemplate}
+                                exportParams={params.exportParams}
+                                importParams={params.importParams}
                                 paramSupported={params.paramSupported}
-                                paramPanelOpen={params.paramPanelOpen}
+                                paramVendor={params.paramVendor}
                                 runDemo={sequence.runDemo}
                                 stopDemo={sequence.stopDemo}
                                 demoAction={sequence.demoAction}
@@ -620,6 +644,7 @@ export function RobotArmPage() {
                                 demoBusy={sequence.demoBusy}
                                 onOpenFirstUse={() => setFirstUseOpen(true)}
                               />
+                              {params.paramProgressBar}
                               {params.paramTable}
 
                               <ProgressBar

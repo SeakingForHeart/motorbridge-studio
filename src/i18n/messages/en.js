@@ -158,6 +158,17 @@ export const en = {
   arm_params_verify_ok: 'Write-back verification passed.',
   arm_params_verify_mismatch: 'Write-back verification mismatch count',
   arm_apply_default_template: 'Apply Default Template',
+  arm_export_params: 'Export Params',
+  arm_params_export_doing: 'Reading and exporting RS params…',
+  arm_params_export_done: 'RS params exported to txt',
+  arm_params_export_failed: 'RS params export failed',
+  arm_import_params: 'Import Params',
+  arm_import_params_hint:
+    'Pick an exported TSV: validate format, read current, write & store only differing cells',
+  arm_params_import_doing: 'Validating and importing RS params…',
+  arm_params_import_done: 'RS params import done',
+  arm_params_import_failed: 'RS params import failed',
+  arm_import_format_invalid: 'Parameter file format mismatch',
   arm_demo_btn: 'Demo',
   arm_demo_list: 'Demo List',
   arm_demo_safe_seq: 'J1..J7 Sequence + Return to Zero',
@@ -176,6 +187,8 @@ export const en = {
   arm_demo_online_hint: 'Online joints {{online}}/{{total}}. Demo drives online joints only.',
   arm_demo_beta_warn:
     'Note: Demo is still being stabilized. Keep low speed and E-stop ready onsite.',
+  arm_dev_mode_hint:
+    'Developer mode is on (toggle with Ctrl+D+E+V). Reveals hidden debug buttons and UI; session-only.',
   arm_live_move_failed: 'Live move failed; target synced back from motor state.',
   arm_params_template_applied: 'Applied reBot Arm Damiao default template (joints 1-6).',
   arm_params_template_applied_robstride:
@@ -391,6 +404,9 @@ export const en = {
   read_param: 'Read Param',
   write_param: 'Write Param',
   confirm_robstride_param_write_title: 'Confirm RobStride Parameter Write',
+  confirm_mode_switch_title: 'Confirm Motor Mode Switch',
+  confirm_mode_switch:
+    'The motor is currently enabled. Switching mode will disable it first (torque off), which may drop a load.\n\nContinue only after the motor is safely supported and E-stop is ready.',
   confirm_robstride_param_write:
     'About to write RobStride {{motor}} parameter {{param}} ({{type}}) = {{value}}.\n\nThis changes low-level motor parameters and may affect motion behavior. Continue only after the motor is safely supported and E-stop is ready.',
   extra_snapshot_fields: 'Extra Snapshot Fields',

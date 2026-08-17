@@ -8,6 +8,7 @@ import { usePreferences } from './usePreferences';
 import { useScanState } from './useScanState';
 import { useMotorControl } from './useMotorControl';
 import { useRobotArmOps } from './useRobotArmOps';
+import { useDevMode } from './useDevMode';
 
 const LS_HITS_KEY = 'motorbridge_studio_hits_v1';
 const LS_CONTROLS_KEY = 'motorbridge_studio_controls_v1';
@@ -141,6 +142,7 @@ export function useMotorStudio() {
     setTargetForRef.current = connectionState.setTargetFor;
   }, [connectionState.setTargetFor]);
   const preferences = usePreferences();
+  const dev = useDevMode();
 
   const scanState = useScanState({
     t,
@@ -477,6 +479,8 @@ export function useMotorStudio() {
       readRobotArmControlParams: robotArmState.readRobotArmControlParams,
       writeRobotArmControlParams: robotArmState.writeRobotArmControlParams,
       writeRobstrideParamToAllJoints: robotArmState.writeRobstrideParamToAllJoints,
+      exportRobstrideParams: robotArmState.exportRobstrideParams,
+      importRobstrideParams: robotArmState.importRobstrideParams,
     }),
     [robotArmState]
   );
@@ -505,9 +509,10 @@ export function useMotorStudio() {
       control,
       robotArm,
       preferences,
+      dev,
       logs: logsDomain,
       workspace,
     }),
-    [connection, control, logsDomain, preferences, robotArm, scan, workspace]
+    [connection, control, logsDomain, preferences, robotArm, scan, workspace, dev]
   );
 }

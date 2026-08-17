@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { bulkOp, sleep } from '../lib/async';
 import { DAMIAO_ARM_PARAM_DEFS, ROBSTRIDE_ARM_PARAM_DEFS } from '../lib/appConfig';
 import { modelForHit } from '../lib/motorStudioOps';
-import { toRobstrideCliType } from '../lib/robstrideParamCatalog';
+import {
+  toRobstrideCliType,
+  canRobstrideRead,
+  canRobstrideWrite,
+  robstrideParamPriority,
+  parseRobstrideParamsTsv,
+  ROBSTRIDE_PARAM_CATALOG,
+} from '../lib/robstrideParamCatalog';
 import { armVendorForProfile } from '../lib/robotArm';
 import { defaultControlsForHit, getResponseValue, motorKey } from '../lib/utils';
 import { useRobotArmStudio } from './useRobotArmStudio';
@@ -388,6 +395,7 @@ export function useRobotArmOps({
       return failCount === 0;
     });
 
+  // TODO: reset-pose has known gaps; revise against real hardware before enabling (vlim / mode switch / disable / readback verify).
   const resetPoseRobotArm = async () =>
     runRobotArmBulk('reset-pose', async () => {
       pushLog('robot-arm reset-pose start target=0.0rad', 'info');
@@ -614,6 +622,325 @@ export function useRobotArmOps({
     return { okCount, total, result };
   };
 
+  // Read every writable RobStride parameter (0x7005..0x702E, access rw —
+  // read-only params like mechPos/VBUS are excluded so the file is a clean
+  // import source) from each arm joint (all joints, including offline ones)
+  // and download the result as a tab-separated .txt: columns are joints
+  // (J1..J7), rows are registers (param_id / type / name / access), cells are
+  // raw values. If the gateway cannot read an individual param, that cell is
+  // recorded as "ERR" and the rest of the joint's params are still read.
+  const exportRobstrideParams = async ({ onProgress } = {}) => {
+    const rows = robotArmJointRows.filter((r) => String(r?.hit?.vendor) === 'robstride');
+    if (rows.length === 0) {
+      pushLog('robot-arm export params skipped: no robstride joints', 'err');
+      return { error: 'no robstride joints', okCount: 0, total: 0 };
+    }
+    // rw only: must be readable (to export a value) and writable (to import back).
+    const exportDefs = ROBSTRIDE_PARAM_CATALOG.filter(
+      (d) => canRobstrideRead(d.access) && canRobstrideWrite(d.access)
+    );
+    const total = rows.length;
+    onProgress?.({ active: true, done: 0, total, label: 'exporting params...', percent: 0 });
+
+    const result = {};
+    let done = 0;
+    for (const row of rows) {
+      const h = row.hit;
+      const values = {};
+      const online = Boolean(h?.online);
+      if (!online) {
+        for (const def of exportDefs) values[def.name] = 'ERR:offline';
+      } else {
+        try {
+          await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id, {
+            enableStreams: false,
+          });
+          for (const def of exportDefs) {
+            const type = toRobstrideCliType(def.dataType);
+            const ret = await sendCmd(
+              'robstride_read_param',
+              { param_id: def.id, type, timeout_ms: 1000 },
+              3000
+            );
+            if (ret?.ok) {
+              values[def.name] = Number(getResponseValue(ret));
+            } else {
+              // Record the failure in-cell and keep reading the rest.
+              values[def.name] = `ERR:${ret?.error || 'read failed'}`;
+            }
+          }
+        } catch (e) {
+          // Bus-level failure (e.g. setTargetFor/open failed): mark every
+          // remaining cell so the joint still appears in the export.
+          const busError = e.message || String(e);
+          for (const def of exportDefs) {
+            if (!(def.name in values)) values[def.name] = `ERR:${busError}`;
+          }
+        } finally {
+          await closeBusQuietly();
+        }
+      }
+      const failCount = exportDefs.filter((d) => String(values[d.name]).startsWith('ERR')).length;
+      result[row.joint] = {
+        ok: online && failCount === 0,
+        online,
+        values,
+        failCount,
+        total: exportDefs.length,
+      };
+      done += 1;
+      onProgress?.({
+        active: true,
+        done,
+        total,
+        label: `export params joint ${row.joint} (${done}/${total})`,
+        percent: Math.floor((done / total) * 100),
+      });
+      await sleep(10);
+    }
+    onProgress?.({ active: false, done: total, total, label: 'export done', percent: 100 });
+
+    // --- Build a TSV: header + one row per register, columns = joints. ---
+    const joints = rows.map((r) => r.joint);
+    const hex = (id) => `0x${id.toString(16).padStart(4, '0')}`;
+    // Numeric values are emitted raw; read failures collapse to "ERR" and
+    // offline joints to "offline" so an importer can skip non-numeric cells.
+    const cellFmt = (v) => {
+      if (Number.isFinite(v)) return String(v);
+      if (typeof v === 'string') {
+        if (v === 'ERR:offline') return 'offline';
+        if (v.startsWith('ERR:')) return 'ERR';
+      }
+      return '';
+    };
+    const lines = [
+      '# RobStride arm parameters export (TSV)',
+      '# vendor: robstride',
+      `# joints: ${joints.join(', ')}`,
+      `# writable params: ${exportDefs.length}`,
+      '# cell values: numeric | "ERR" (read failed) | "offline" (joint offline)',
+      '# priority: high = safety/motion/tuning-critical, review before import.',
+      '# import: split each non-"#" line by tab; skip cells that are not numeric.',
+      '',
+      ['param_id', 'type', 'name', 'desc_zh', 'access', 'priority', ...joints.map((j) => `J${j}`)].join('\t'),
+      ...exportDefs.map((d) =>
+        [
+          hex(d.id),
+          toRobstrideCliType(d.dataType),
+          d.name,
+          d.descZh || '',
+          d.access,
+          robstrideParamPriority(d),
+          ...joints.map((j) => cellFmt(result[j]?.values?.[d.name])),
+        ].join('\t')
+      ),
+    ];
+
+    try {
+      const blob = new Blob([`${lines.join('\n')}\n`], {
+        type: 'text/tab-separated-values;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `robstride-params-${Date.now()}.tsv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      pushLog(`robot-arm export params download failed: ${e.message || e}`, 'err');
+    }
+
+    const okCount = Object.values(result).filter((x) => x.ok).length;
+    pushLog(
+      `robot-arm export params done ok=${okCount}/${total}`,
+      okCount === total ? 'ok' : 'err'
+    );
+    return { okCount, total, result };
+  };
+
+  // Import a TSV produced by exportRobstrideParams back into the arm. The file
+  // is parsed with parseRobstrideParamsTsv (same format as the export), the
+  // current value of each writable register is read and compared, and only the
+  // cells that differ are written back — so an unchanged file is a no-op and a
+  // partial file only touches the joints/registers it carries. Read-only
+  // registers and non-numeric cells ("ERR"/"offline") are skipped by the
+  // parser. Offline joints in the arm are skipped (no bus open attempted).
+  // Result per joint: { ok, online, read, written, skipped, errors }.
+  const importRobstrideParams = async ({ file, onProgress } = {}) => {
+    const rows = robotArmJointRows.filter((r) => String(r?.hit?.vendor) === 'robstride');
+    if (rows.length === 0) {
+      pushLog('robot-arm import params skipped: no robstride joints', 'err');
+      return { error: 'no robstride joints' };
+    }
+
+    let text;
+    try {
+      text = await file.text();
+    } catch (e) {
+      pushLog(`robot-arm import params read failed: ${e.message || e}`, 'err');
+      return { error: `read file failed: ${e.message || e}` };
+    }
+
+    const parsed = parseRobstrideParamsTsv(text);
+    if (!parsed.ok) {
+      pushLog(`robot-arm import params rejected: ${parsed.errors.length} format error(s)`, 'err');
+      return { error: 'format invalid', errors: parsed.errors };
+    }
+
+    const byJoint = new Map(rows.map((r) => [r.joint, r]));
+    const jointsToImport = parsed.joints.filter((j) => byJoint.has(j));
+    if (jointsToImport.length === 0) {
+      pushLog('robot-arm import params skipped: no matching joints in arm', 'err');
+      return { error: 'no matching joints', errors: parsed.errors };
+    }
+
+    const total = jointsToImport.length;
+    const hex = (id) => `0x${id.toString(16).padStart(4, '0')}`;
+    onProgress?.({ active: true, done: 0, total, label: 'importing params...', percent: 0 });
+
+    const result = {};
+    const writtenLog = []; // { joint, paramId, name, from, to }
+    let done = 0;
+    for (const joint of jointsToImport) {
+      const row = byJoint.get(joint);
+      const h = row.hit;
+      const online = Boolean(h?.online);
+      const tally = { ok: false, online, read: 0, written: 0, skipped: 0, saved: 0, errors: [] };
+      if (!online) {
+        tally.errors.push('joint offline');
+      } else {
+        try {
+          await setTargetFor(h.vendor, modelForHit(h, vendors), h.esc_id, h.mst_id, {
+            enableStreams: false,
+          });
+          for (const pr of parsed.rows) {
+            const fileVal = pr.values[joint];
+            if (fileVal == null) continue; // this joint had no value for this row
+            const def = pr.def;
+            const type = pr.type;
+            // Read current value to decide whether a write is needed.
+            let cur;
+            try {
+              const rret = await sendCmd(
+                'robstride_read_param',
+                { param_id: def.id, type, timeout_ms: 1000 },
+                3000
+              );
+              if (rret?.ok) {
+                cur = Number(getResponseValue(rret));
+              } else {
+                tally.errors.push(`${def.name} read: ${rret?.error || 'failed'}`);
+                tally.read += 1;
+                continue;
+              }
+            } catch (e) {
+              tally.errors.push(`${def.name} read: ${e.message || e}`);
+              continue;
+            }
+            tally.read += 1;
+            const same =
+              def.dataType === 'Float32' ? Math.abs(cur - fileVal) < 1e-4 : cur === fileVal;
+            if (same) {
+              tally.skipped += 1;
+              continue;
+            }
+            try {
+              const wret = await sendCmd(
+                'robstride_write_param',
+                { param_id: def.id, type, value: fileVal, timeout_ms: 1000 },
+                3000
+              );
+              if (!wret?.ok) {
+                throw new Error(wret?.error || 'write failed');
+              }
+              tally.written += 1;
+              writtenLog.push({ joint, paramId: def.id, name: def.name, from: cur, to: fileVal });
+              pushLog(
+                `robot-arm import J${joint} ${hex(def.id)} ${def.name}: ${cur} -> ${fileVal}`,
+                'info'
+              );
+            } catch (e) {
+              tally.errors.push(`${def.name} write: ${e.message || e}`);
+            }
+          }
+          // Persist the writes for this joint to Flash so they survive
+          // power-cycle. Only store when at least one param changed; storing
+          // an unchanged joint is unnecessary wear on the Flash.
+          if (tally.written > 0) {
+            try {
+              const stored = await sendCmd(
+                'store_parameters',
+                { vendor: h.vendor, motor_id: h.esc_id, feedback_id: h.mst_id },
+                4000
+              );
+              if (!stored?.ok) {
+                throw new Error(stored?.error || 'store_parameters failed');
+              }
+              tally.saved += 1;
+              pushLog(`robot-arm import J${joint} stored ${tally.written} param(s)`, 'ok');
+            } catch (e) {
+              tally.errors.push(`store: ${e.message || e}`);
+              pushLog(`robot-arm import J${joint} store failed: ${e.message || e}`, 'err');
+            }
+          }
+        } catch (e) {
+          const busError = e.message || String(e);
+          tally.errors.push(`bus: ${busError}`);
+        } finally {
+          await closeBusQuietly();
+        }
+      }
+      tally.ok = online && tally.errors.length === 0;
+      result[joint] = tally;
+      done += 1;
+      onProgress?.({
+        active: true,
+        done,
+        total,
+        label: `import joint ${joint} (${done}/${total}) r=${tally.read} w=${tally.written} s=${tally.skipped} saved=${tally.saved}`,
+        percent: Math.floor((done / total) * 100),
+      });
+      await sleep(10);
+    }
+    onProgress?.({ active: false, done: total, total, label: 'import done', percent: 100 });
+
+    const readTotal = Object.values(result).reduce((s, x) => s + x.read, 0);
+    const writtenTotal = Object.values(result).reduce((s, x) => s + x.written, 0);
+    const skippedTotal = Object.values(result).reduce((s, x) => s + x.skipped, 0);
+    const savedTotal = Object.values(result).reduce((s, x) => s + x.saved, 0);
+    const okCount = Object.values(result).filter((x) => x.ok).length;
+
+    // Consolidated log of every parameter that was actually written, grouped
+    // by joint, so the operator can audit what the import changed.
+    if (writtenLog.length > 0) {
+      const byJoint = new Map();
+      for (const w of writtenLog) {
+        if (!byJoint.has(w.joint)) byJoint.set(w.joint, []);
+        byJoint.get(w.joint).push(`${hex(w.paramId)} ${w.name}=${w.to}`);
+      }
+      const detail = [...byJoint.entries()]
+        .map(([j, arr]) => `J${j}:[${arr.join(', ')}]`)
+        .join(' ');
+      pushLog(`robot-arm import written ${writtenTotal} cell(s): ${detail}`, 'ok');
+    }
+    pushLog(
+      `robot-arm import params done joints=${okCount}/${total} read=${readTotal} written=${writtenTotal} skipped=${skippedTotal} saved=${savedTotal}`,
+      okCount === total ? 'ok' : 'err'
+    );
+    return {
+      okCount,
+      total,
+      read: readTotal,
+      written: writtenTotal,
+      skipped: skippedTotal,
+      saved: savedTotal,
+      writtenLog,
+      result,
+    };
+  };
+
   return {
     robotArmModel,
     armScanBusy,
@@ -638,5 +965,7 @@ export function useRobotArmOps({
     readRobotArmControlParams,
     writeRobotArmControlParams,
     writeRobstrideParamToAllJoints,
+    exportRobstrideParams,
+    importRobstrideParams,
   };
 }

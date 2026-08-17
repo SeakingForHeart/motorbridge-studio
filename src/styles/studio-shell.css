@@ -54,6 +54,13 @@
   align-items: center;
 }
 
+.heroConnStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
 .langBox {
   display: inline-flex;
   align-items: center;
@@ -221,7 +228,9 @@
   font-weight: 700;
   background: linear-gradient(90deg, #f6fbff, #eef5ff);
   box-shadow: 0 8px 18px rgba(70, 114, 236, 0.18);
-  animation: foundPop 320ms ease, foundFade 1400ms ease;
+  animation:
+    foundPop 320ms ease,
+    foundFade 1400ms ease;
 }
 
 .starBurstLayer {
@@ -530,7 +539,7 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 12px;
   line-height: 1.45;
   color: #17315e;

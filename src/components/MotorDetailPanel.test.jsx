@@ -123,7 +123,11 @@ describe('MotorDetailPanel control UI', () => {
     );
 
     expect(screen.getByRole('checkbox', { name: 'Live move while dragging' }).disabled).toBe(true);
-    expect(screen.getByText('Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Live Move is disabled in MIT mode for safety. Dragging only updates the target; click Move to send.'
+      )
+    ).toBeTruthy();
   });
 
   it('calls enable with only the active motor', async () => {
@@ -230,6 +234,7 @@ describe('ParamManager safety confirmations', () => {
           ]}
           readRobotArmControlParams={vi.fn()}
           writeRobotArmControlParams={writeRobotArmControlParams}
+          devMode
           askZeroConfirm={askZeroConfirm}
           canAction
           armToolbarBusy={false}

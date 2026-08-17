@@ -21,9 +21,9 @@ import { useI18n } from '../i18n';
 import { useConnectionContext, usePreferencesContext } from '../hooks/useMotorStudioContext';
 import { ConfirmDialog } from './ConfirmDialog';
 
-function ModeSelect({ modes, value, onChange }) {
+function ModeSelect({ modes, value, onChange, disabled = false }) {
   return (
-    <select value={value} onChange={onChange}>
+    <select value={value} onChange={onChange} disabled={disabled}>
       {modes.map((mode) => (
         <option key={mode} value={mode}>
           {mode}
@@ -31,6 +31,21 @@ function ModeSelect({ modes, value, onChange }) {
       ))}
     </select>
   );
+}
+
+// Vendors whose gateway does not implement ensure_mode (handle_ensure_mode
+// returns an error for them). For these, selecting a mode only patches local
+// state (mode is applied later at move time), mirroring the previous behavior.
+const ENSURE_MODE_UNSUPPORTED_VENDORS = new Set(['myactuator', 'hightorque']);
+
+// Map the panel's unified mode name to the string the gateway's ensure_mode
+// parser expects. RobStride's parser accepts mit / pos / vel (not pos_vel), so
+// remap pos_vel -> pos; every other vendor/mode passes through unchanged.
+function ensureModePayloadForVendor(vendor, mode) {
+  const v = String(vendor || '').toLowerCase();
+  const m = String(mode || 'mit');
+  if (v === 'robstride' && m === 'pos_vel') return 'pos';
+  return m;
 }
 
 function Field({ label, value, onChange, disabled = false }) {
@@ -92,6 +107,11 @@ export function MotorDetailPanel({
     title: '',
     message: '',
     danger: true,
+  });
+  const [modeSwitchConfirm, setModeSwitchConfirm] = React.useState({
+    open: false,
+    next: '',
+    prev: '',
   });
   const [opBusy, setOpBusy] = React.useState(false);
   const paramWriteConfirmResolverRef = React.useRef(null);
@@ -170,8 +190,84 @@ export function MotorDetailPanel({
     ? Boolean(toRobstrideCliType(selectedRobstrideParam.dataType))
     : true;
   const key = activeMotor ? motorKey(activeMotor) : '';
-  const patch = (field) => (e) => patchControl(key, { [field]: e.target.value });
   const patchNumber = (field) => (e) => patchControl(key, { [field]: e.target.value });
+
+  // Selecting a mode in the general mode dropdown should take effect on the
+  // motor immediately: after patching local state, send ensure_mode so the
+  // gateway switches (and confirms) the run mode. Vendors whose gateway does
+  // not implement ensure_mode just patch locally (mode is applied at move
+  // time). On ensure failure, revert local mode to the motor's real mode.
+  //
+  // RobStride's ensure_control_mode DISABLES the motor when the mode actually
+  // changes (it does not re-enable). We mirror that here: after a real switch
+  // we drop the local `enabled` flag so the UI shows the motor as disabled,
+  // matching reality and the manual's "switch while stopped" rule. If the
+  // motor was enabled when the user picked a new mode, confirm first — the
+  // disable will drop torque and may release a load.
+  const applyModeSwitch = React.useCallback(
+    async (next, prev) => {
+      const v = String(vendor).toLowerCase();
+      const isRs = v === 'robstride';
+      setOpBusy(true);
+      try {
+        await runMotorOp(
+          activeMotor,
+          'ensure_mode',
+          { mode: ensureModePayloadForVendor(v, next), timeout_ms: 2000 },
+          4000
+        );
+        // RobStride's standalone ensure_mode disables the motor on a real
+        // switch (no re-enable). Sync local enabled flag so the display
+        // matches the motor. Re-selecting the same mode is a gateway fast
+        // path (no disable), so leave enabled untouched.
+        if (isRs && next !== prev) {
+          patchControl(key, { enabled: false });
+        }
+      } catch {
+        // ensure failed: restore the previous mode. RobStride may have
+        // already disabled the motor before failing, so also drop enabled.
+        const revert = { mode: prev };
+        if (isRs) revert.enabled = false;
+        patchControl(key, revert);
+      } finally {
+        setOpBusy(false);
+      }
+    },
+    [activeMotor, key, patchControl, runMotorOp, vendor]
+  );
+
+  const onModeChange = React.useCallback(
+    (e) => {
+      const next = e.target.value;
+      const prev = activeControl?.mode;
+      // Re-selecting the current mode is a no-op: skip the ensure round-trip
+      // and (for an enabled RobStride motor) the torque-drop confirm dialog.
+      if (next === prev) return;
+      patchControl(key, { mode: next });
+      const v = String(vendor).toLowerCase();
+      if (!activeMotor || !connected || opBusy || ENSURE_MODE_UNSUPPORTED_VENDORS.has(v)) {
+        return;
+      }
+      // Switching mode on an enabled RobStride motor drops torque mid-motion.
+      // Confirm first so the user can avoid dropping a load.
+      if (v === 'robstride' && activeControl?.enabled) {
+        setModeSwitchConfirm({ open: true, next, prev });
+        return;
+      }
+      applyModeSwitch(next, prev);
+    },
+    [
+      activeControl?.enabled,
+      activeControl?.mode,
+      activeMotor,
+      applyModeSwitch,
+      connected,
+      key,
+      opBusy,
+      patchControl,
+      vendor,
+    ]
+  );
   React.useEffect(
     () => () => {
       if (liveMoveTimerRef.current) clearTimeout(liveMoveTimerRef.current);
@@ -334,6 +430,22 @@ export function MotorDetailPanel({
         onCancel={() => closeParamWriteConfirm(false)}
         onConfirm={() => closeParamWriteConfirm(true)}
       />
+      <ConfirmDialog
+        open={modeSwitchConfirm.open}
+        title={t('confirm_mode_switch_title')}
+        message={t('confirm_mode_switch')}
+        danger
+        onCancel={() => {
+          const { prev } = modeSwitchConfirm;
+          setModeSwitchConfirm({ open: false, next: '', prev: '' });
+          if (prev !== undefined) patchControl(key, { mode: prev });
+        }}
+        onConfirm={() => {
+          const { next, prev } = modeSwitchConfirm;
+          setModeSwitchConfirm({ open: false, next: '', prev: '' });
+          applyModeSwitch(next, prev);
+        }}
+      />
 
       <div className="sectionTitle">
         <h2>
@@ -397,7 +509,12 @@ export function MotorDetailPanel({
       <div className="grid3 denseGrid">
         <div className="field">
           <label>{t('mode')}</label>
-          <ModeSelect modes={modeOptions} value={activeControl.mode} onChange={patch('mode')} />
+          <ModeSelect
+            modes={modeOptions}
+            value={activeControl.mode}
+            onChange={onModeChange}
+            disabled={!connected || opBusy}
+          />
         </div>
         <Field
           label={t(targetLabelKey)}

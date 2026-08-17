@@ -1,5 +1,7 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../../../i18n';
+import { ProgressBar } from '../../ProgressBar';
 import { DAMIAO_ARM_PARAM_DEFS, ROBSTRIDE_ARM_PARAM_DEFS } from '../../../lib/appConfig';
 import {
   REBOT_ARM_DAMIAO_DEFAULT_TEMPLATE,
@@ -19,6 +21,9 @@ export function ParamManager({
   readRobotArmControlParams,
   writeRobotArmControlParams,
   writeRobstrideParamToAllJoints,
+  exportRobstrideParams,
+  importRobstrideParams,
+  devMode,
   sendCmd,
   setArmParamOpBusy,
   askZeroConfirm,
@@ -31,6 +36,7 @@ export function ParamManager({
   const [paramBusy, setParamBusy] = React.useState(false);
   const [paramRows, setParamRows] = React.useState([]);
   const [paramInfo, setParamInfo] = React.useState('');
+  const [importAlert, setImportAlert] = React.useState({ open: false, message: '' });
   const [paramProgress, setParamProgress] = React.useState({
     active: false,
     done: 0,
@@ -332,32 +338,140 @@ export function ParamManager({
     return onlineRows.every((row) => row.loaded && !row.error);
   }, [paramRows, paramSupported, paramVendor]);
 
+  const exportParams = React.useCallback(async () => {
+    setParamPanelOpen(true);
+    if (paramVendor !== 'robstride' || !exportRobstrideParams) {
+      setParamInfo(t('arm_params_vendor_unsupported'));
+      return;
+    }
+    setParamBusy(true);
+    setArmParamOpBusy?.(true);
+    setParamInfo(t('arm_params_export_doing'));
+    try {
+      const res = await exportRobstrideParams({ onProgress: setParamProgress });
+      if (res?.error) {
+        setParamInfo(`${t('arm_params_export_failed')}: ${res.error}`);
+      } else {
+        setParamInfo(`${t('arm_params_export_done')} (${res.okCount}/${res.total})`);
+      }
+    } catch (e) {
+      setParamInfo(`${t('arm_params_export_failed')}: ${e.message || e}`);
+    } finally {
+      setArmParamOpBusy?.(false);
+      setParamBusy(false);
+    }
+  }, [exportRobstrideParams, paramVendor, setArmParamOpBusy, t]);
+
+  const importParams = React.useCallback(
+    async (file) => {
+      setParamPanelOpen(true);
+      if (paramVendor !== 'robstride' || !importRobstrideParams) {
+        setParamInfo(t('arm_params_vendor_unsupported'));
+        return;
+      }
+      if (!file) return;
+      setParamBusy(true);
+      setArmParamOpBusy?.(true);
+      setParamInfo(t('arm_params_import_doing'));
+      try {
+        const res = await importRobstrideParams({ file, onProgress: setParamProgress });
+        if (res?.error === 'format invalid') {
+          // Format mismatch: pop up a modal listing the parser's errors so the
+          // operator can fix the file; nothing was written to any motor.
+          const detail = res.errors?.length
+            ? res.errors.join('\n')
+            : t('arm_import_format_invalid');
+          setImportAlert({ open: true, message: detail });
+          setParamInfo(`${t('arm_params_import_failed')}: ${t('arm_import_format_invalid')}`);
+        } else if (res?.error) {
+          const detail = res.errors?.length ? res.errors.slice(0, 3).join('; ') : res.error;
+          setParamInfo(`${t('arm_params_import_failed')}: ${detail}`);
+        } else {
+          setParamInfo(
+            `${t('arm_params_import_done')} (${res.okCount}/${res.total} r=${res.read} w=${res.written} s=${res.skipped} saved=${res.saved})`
+          );
+        }
+      } catch (e) {
+        setParamInfo(`${t('arm_params_import_failed')}: ${e.message || e}`);
+      } finally {
+        setArmParamOpBusy?.(false);
+        setParamBusy(false);
+      }
+    },
+    [importRobstrideParams, paramVendor, setArmParamOpBusy, t]
+  );
+
   const manager = {
     paramPanelOpen,
     paramBusy,
     paramSupported,
+    paramVendor,
     readParams,
     writeParams,
     applyDefaultTemplate,
+    exportParams,
+    importParams,
+    // The shared param-action progress bar. It is NOT rendered inside the dev
+    // param display panel; instead it pops up temporarily below the toolbar
+    // hint whenever a read/write/apply/export/import action is running, so the
+    // operator gets progress feedback in default mode too (where the panel is
+    // hidden). It auto-hides once the action finishes.
+    paramProgressBar:
+      paramBusy || paramProgress?.active ? (
+        <div className="armParamProgressPop" aria-live="polite">
+          <ProgressBar active progress={paramProgress} />
+        </div>
+      ) : null,
     paramTable: (
-      <ParamTable
-        open={paramPanelOpen}
-        canAction={canAction}
-        armToolbarBusy={armToolbarBusy}
-        paramBusy={paramBusy}
-        paramInfo={paramInfo}
-        paramProgress={paramProgress}
-        paramRows={paramRows}
-        paramDefs={paramDefs}
-        canWriteParams={canWriteParams}
-        paramSupported={paramSupported}
-        paramVendor={paramVendor}
-        patchParam={patchParam}
-        readParams={readParams}
-        writeParams={writeParams}
-        applyDefaultTemplate={applyDefaultTemplate}
-        onClose={() => setParamPanelOpen(false)}
-      />
+      <>
+        <ParamTable
+          // The param display panel is a developer-only surface: in default
+          // mode it never renders, even if a toolbar action (read/write/apply/
+          // export/import) set paramPanelOpen. The actions themselves still run
+          // and report through the event log; only the inline panel is hidden.
+          open={paramPanelOpen && devMode}
+          canAction={canAction}
+          armToolbarBusy={armToolbarBusy}
+          paramBusy={paramBusy}
+          paramInfo={paramInfo}
+          paramRows={paramRows}
+          paramDefs={paramDefs}
+          canWriteParams={canWriteParams}
+          paramSupported={paramSupported}
+          paramVendor={paramVendor}
+          patchParam={patchParam}
+          readParams={readParams}
+          writeParams={writeParams}
+          applyDefaultTemplate={applyDefaultTemplate}
+          exportParams={exportParams}
+          importParams={importParams}
+          onClose={() => setParamPanelOpen(false)}
+        />
+        {importAlert.open &&
+          createPortal(
+            <div
+              className="armDialogMask"
+              role="dialog"
+              aria-modal="true"
+              aria-live="assertive"
+              onClick={() => setImportAlert((prev) => ({ ...prev, open: false }))}
+            >
+              <div className="armDialogCard" onClick={(e) => e.stopPropagation()}>
+                <h3>{t('arm_import_format_invalid')}</h3>
+                <pre className="armImportAlertDetail">{importAlert.message}</pre>
+                <div className="row toolbar compactToolbar">
+                  <button
+                    className="primary"
+                    onClick={() => setImportAlert((prev) => ({ ...prev, open: false }))}
+                  >
+                    {t('close')}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+      </>
     ),
   };
 

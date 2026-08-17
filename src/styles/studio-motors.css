@@ -861,6 +861,40 @@
   line-height: 1.45;
 }
 
+.armImportAlertDetail {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  max-height: 50vh;
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid #e2c9c9;
+  background: #fff5f5;
+  color: #8a2b2b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.armParamProgressPop {
+  margin: 6px 0 4px;
+}
+
+.armDevBadge {
+  align-self: flex-end;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #b9941f;
+  background: #fff7d6;
+  color: #8a6a0a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: help;
+  user-select: none;
+}
+
 .armGuideList {
   margin: 0 0 12px;
   padding-left: 18px;

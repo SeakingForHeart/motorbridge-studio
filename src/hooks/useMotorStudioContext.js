@@ -8,6 +8,7 @@ const RobotArmContext = React.createContext(null);
 const PreferencesContext = React.createContext(null);
 const LogsContext = React.createContext(null);
 const WorkspaceContext = React.createContext(null);
+const DevContext = React.createContext(null);
 
 function requireContext(value, name) {
   if (!value) {
@@ -38,7 +39,11 @@ export function MotorStudioProvider({ value, children }) {
               React.createElement(
                 LogsContext.Provider,
                 { value: value.logs },
-                React.createElement(WorkspaceContext.Provider, { value: value.workspace }, children)
+                React.createElement(
+                  WorkspaceContext.Provider,
+                  { value: value.workspace },
+                  React.createElement(DevContext.Provider, { value: value.dev }, children)
+                )
               )
             )
           )
@@ -80,6 +85,10 @@ export function useWorkspaceContext() {
   return requireContext(React.useContext(WorkspaceContext), 'useWorkspaceContext');
 }
 
+export function useDevContext() {
+  return requireContext(React.useContext(DevContext), 'useDevContext');
+}
+
 export function useMotorStudioContext() {
   const studio = useStudioDomains();
   return React.useMemo(
@@ -91,6 +100,7 @@ export function useMotorStudioContext() {
       ...studio.preferences,
       ...studio.logs,
       ...studio.workspace,
+      ...studio.dev,
     }),
     [studio]
   );

@@ -160,6 +160,17 @@ export const es = {
   arm_params_verify_ok: 'Verificación de relectura correcta.',
   arm_params_verify_mismatch: 'Cantidad de diferencias tras relectura',
   arm_apply_default_template: 'Aplicar plantilla por defecto',
+  arm_export_params: 'Exportar parámetros',
+  arm_params_export_doing: 'Leyendo y exportando parámetros RS…',
+  arm_params_export_done: 'Parámetros RS exportados a txt',
+  arm_params_export_failed: 'Error al exportar parámetros RS',
+  arm_import_params: 'Importar parámetros',
+  arm_import_params_hint:
+    'Elige un TSV exportado: valida formato, lee el actual, escribe y guarda solo celdas distintas',
+  arm_params_import_doing: 'Validando e importando parámetros RS…',
+  arm_params_import_done: 'Parámetros RS importados',
+  arm_params_import_failed: 'Error al importar parámetros RS',
+  arm_import_format_invalid: 'Formato de archivo de parámetros no válido',
   arm_demo_btn: 'Demo',
   arm_demo_list: 'Lista Demo',
   arm_demo_safe_seq: 'Secuencia J1..J7 + vuelta a cero',
@@ -179,6 +190,8 @@ export const es = {
     'Articulaciones online {{online}}/{{total}}. Demo solo mueve articulaciones online.',
   arm_demo_beta_warn:
     'Nota: Demo sigue en estabilización. Mantenga baja velocidad y parada de emergencia lista.',
+  arm_dev_mode_hint:
+    'Modo desarrollador activado (alternar con Ctrl+D+E+V). Muestra botones y UI de depuración ocultos; solo esta sesión.',
   arm_live_move_failed:
     'Falló el movimiento en vivo; objetivo sincronizado desde el estado del motor.',
   arm_params_template_applied:
@@ -399,6 +412,9 @@ export const es = {
   read_param: 'Leer parámetro',
   write_param: 'Escribir parámetro',
   confirm_robstride_param_write_title: 'Confirmar escritura de parámetro RobStride',
+  confirm_mode_switch_title: 'Confirmar cambio de modo del motor',
+  confirm_mode_switch:
+    'El motor está habilitado. Cambiar de modo lo deshabilitará primero (par motor apagado), lo que puede soltar una carga.\n\nContinúa solo si el motor está asegurado y la parada de emergencia está lista.',
   confirm_robstride_param_write:
     'Vas a escribir en RobStride {{motor}} el parámetro {{param}} ({{type}}) = {{value}}.\n\nEsto cambia parámetros de bajo nivel del motor y puede afectar el movimiento. Continúa solo si el motor está asegurado y la parada de emergencia está lista.',
   extra_snapshot_fields: 'Campos extra del snapshot',

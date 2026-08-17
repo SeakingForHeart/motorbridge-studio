@@ -1,6 +1,5 @@
 import React from 'react';
 import { useI18n } from '../../i18n';
-import { ProgressBar } from '../ProgressBar';
 
 const GROUPS = [
   { key: 'core', title: 'Core' },
@@ -48,7 +47,6 @@ export function ParamTable({
   armToolbarBusy,
   paramBusy,
   paramInfo,
-  paramProgress,
   paramRows,
   paramDefs,
   canWriteParams,
@@ -58,10 +56,18 @@ export function ParamTable({
   readParams,
   writeParams,
   applyDefaultTemplate,
+  exportParams,
+  importParams,
   onClose,
 }) {
   const { t } = useI18n();
+  const fileInputRef = React.useRef(null);
   if (!open) return null;
+  const onImportFile = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (f) importParams?.(f);
+  };
 
   return (
     <div className="armParamPanel">
@@ -94,6 +100,35 @@ export function ParamTable({
         >
           {t('arm_apply_default_template')}
         </button>
+        {paramVendor === 'robstride' && (
+          <button
+            disabled={!canAction || armToolbarBusy || !paramSupported}
+            onClick={exportParams}
+            title={paramSupported ? '' : t('arm_params_vendor_unsupported')}
+          >
+            {t('arm_export_params')}
+          </button>
+        )}
+        {paramVendor === 'robstride' && (
+          <>
+            <button
+              disabled={!canAction || armToolbarBusy || paramBusy || !paramSupported}
+              onClick={() => fileInputRef.current?.click()}
+              title={
+                paramSupported ? t('arm_import_params_hint') : t('arm_params_vendor_unsupported')
+              }
+            >
+              {t('arm_import_params')}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".tsv,.txt,text/tab-separated-values,text/plain"
+              style={{ display: 'none' }}
+              onChange={onImportFile}
+            />
+          </>
+        )}
         <button className="ghostBtn" disabled={armToolbarBusy} onClick={onClose}>
           {t('close')}
         </button>
@@ -104,7 +139,6 @@ export function ParamTable({
         <div className="tip">{t('arm_params_read_before_write')}</div>
       )}
       {paramInfo && <div className="tip">{paramInfo}</div>}
-      <ProgressBar active={paramBusy || paramProgress?.active} progress={paramProgress} />
       {GROUPS.map((group) => {
         const defs = (paramDefs || []).filter((def) => def.group === group.key);
         if (defs.length === 0) return null;

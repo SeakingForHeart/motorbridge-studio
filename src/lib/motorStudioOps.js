@@ -442,6 +442,18 @@ export async function controlMotorOp({
       return true;
     }
 
+    // The move path only reaches here for action === 'move' (enable/disable/
+    // stop/clear_error returned above). Every motor needs to be enabled before
+    // it will act on a motion command; sending one to a disabled motor is a
+    // silent no-op (the firmware ignores it but the bus send still reports ok).
+    // Block explicitly so the user is told to enable, instead of nothing
+    // happening. This also keeps the mode-switch flow coherent: switching mode
+    // disables the motor (per manual), so Move is blocked until re-enabled.
+    if (!c.enabled) {
+      pushLog(`move blocked ${h.vendor} ${toHex(h.esc_id)}: enable first`, 'err');
+      return false;
+    }
+
     if (c.mode === 'mit') {
       const safe = clampMitForSafety(h, c.mode, target, kp, kd, tau);
       target = safe.target;
